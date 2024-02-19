@@ -48,7 +48,8 @@ INSTALLED_APPS = [
     'drf_yasg',
     'employee',
     'delivery_unit',
-    'user'
+    'user',
+    'transfer'
 ]
 
 MIDDLEWARE = [

@@ -13,7 +13,11 @@ class IsAdmin(permissions.BasePermission):
             return False
         
 class IsDuhead(permissions.BasePermission):
+
+
+    
     def has_permission(self,request,view):
+
         try:
             user_role = request.user.user_role
             if user_role == 1:
