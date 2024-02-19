@@ -39,8 +39,9 @@ class UserRegistrationView(GenericAPIView):
                 "error": str(ex)}, }
             return Response(res_data, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-
+#Api endpoint to List all users 
 class UserListCreateView(ListCreateAPIView):
+ 
     permission_classes = (IsAdmin,)
     queryset = User.objects.filter(is_deleted=False).order_by('-id')
     serializer_class =  UserProfileSerializer
