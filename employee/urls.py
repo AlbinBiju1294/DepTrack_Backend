@@ -1,0 +1,10 @@
+from django.urls import path,include
+from .views import *
+
+
+urlpatterns = [
+    path('employee-list/', EmployeeListCreateView.as_view(), name='token_obtain_pair'),
+    # path('employee-sort/', EmployeeSortView.as_view(), name='token_obtain_pair')
+
+   
+]
