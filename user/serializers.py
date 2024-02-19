@@ -21,3 +21,9 @@ class RegisterSerializer(serializers.ModelSerializer):
             if 'username' not in validated_data:
                 raise ValidationError({'username': 'This field is required'})
             return User.objects.create_user(**validated_data)
+
+class UserProfileSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = User
+        fields = ('id', 'email','user_role','status','is_deleted','created_at','employee_id')
