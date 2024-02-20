@@ -33,3 +33,20 @@ class TransferAndDetailsSerializer(serializers.ModelSerializer):
             return None
         except Exception as ex:
             return None
+
+class TransferAndEmployeeSerializer(serializers.ModelSerializer):
+    employee = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Transfer
+        fields = '__all__'
+
+    def get_employee(self, obj):
+        try:
+            if obj.employee:
+                employee = Employee.objects.get(id=obj.employee.id)
+                employee_serializer = EmployeeSerializer(employee)
+                return employee_serializer.data
+            return None
+        except Exception as ex:
+            return None

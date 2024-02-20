@@ -7,6 +7,7 @@ from rest_framework.views import APIView
 from .serializers import TransferSerializer, TransferDetailsSerializer
 from rest_framework.permissions import IsAuthenticated
 from .models import Transfer, TransferDetails
+from employee.models import Employee
 from .serializers import TransferSerializer, TransferDetailsSerializer, TransferAndDetailsSerializer
 from user.rbac import IsDuhead, IsPm, IsHrbp
 
@@ -110,3 +111,56 @@ class GetInitiatedRequestsApiView(APIView):
             return Response({"status": False, "message": "Transfer details not found"}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             return Response({'status': False, "message": "Something went wrong"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+#To post the details when a request is approved by T-DU head
+class ChangeApprovalDatePmAPIView(APIView):
+    """
+    When a target DU head views the detailed view of a transfer request, they can approve or reject it.
+    If 'approve' is clicked then the transfer date can be changed and a new pm can be assigned. This data 
+    is posted into the transfer table.
+    """
+
+    permission_classes = [IsDuhead]
+    
+    def put(self, request):
+        try:
+            data = request.data
+            transfer_id = data.get("id")
+            transfer = Transfer.objects.get(id=transfer_id)
+            transfer.transfer_date = data.get("transfer_date")
+            new_pm = data.get("new_pm")
+            pm =  Employee.objects.get(id=new_pm)
+            print(new_pm)
+            transfer.new_pm = pm
+            transfer.save()
+            # transfer_serializer = TransferSerializer(data=transfer)
+            # if transfer_serializer.is_valid():
+            #     transfer_serializer.save()
+            #     return Response({"status": True, 'message': 'Transfer date and pm changed successfully.'}, status=status.HTTP_201_CREATED)
+            # else:
+            #     return Response({"status": True, 'message': transfer_serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"status": True, 'message': 'Transfer date and pm changed successfully.'}, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            print(e)
+            return Response({"status": False, "message": "Something went wrong"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            
+#To list all the transfers that happened in a DU, in all statuses 
+# class ListTransferHistoryAPIView(APIView):
+#     """
+#     """
+#     permission_classes = [IsDuhead | IsPm | IsHrbp]
+
+#     def get(self, request):
+#         try:
+#             employee_id = request.user.employee_number
+#             employee = Employee.objects.get(id=employee_id)
+#             du_id = employee.du                                                              #department of DU head
+#             transfer = Transfer.objects.filter(Q(currentdu=du_id) | Q(targetdu=du_id))       #data from transfer table
+#             serializer = TransferSerializer(transfer, many=True)
+#             return Response(serializer.data, status=status.HTTP_200_OK)
+        
+#         except Exception as e:
+#             # logger.error(f"Transfer History Listing API: {e}")
+#             return Response("Something went wrong", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        

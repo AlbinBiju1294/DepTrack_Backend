@@ -5,3 +5,9 @@ class EmployeeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Employee
         fields = "__all__"
+
+class EmployeeNameIdListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Employee
+        fields = ['employee_number', 'name']
+        
