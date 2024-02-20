@@ -49,7 +49,8 @@ INSTALLED_APPS = [
     'employee',
     'delivery_unit',
     'user',
-    'transfer'
+    'transfer',
+    'django_filters',
 ]
 
 MIDDLEWARE = [
