@@ -21,3 +21,5 @@ class RegisterSerializer(serializers.ModelSerializer):
             if 'username' not in validated_data:
                 raise ValidationError({'username': 'This field is required'})
             return User.objects.create_user(**validated_data)
+
+
