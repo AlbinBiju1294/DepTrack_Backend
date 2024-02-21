@@ -8,7 +8,7 @@ from django.contrib.auth import update_session_auth_hash
 from .serializers import *
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework.generics import UpdateAPIView, RetrieveUpdateAPIView, ListCreateAPIView, GenericAPIView
+from rest_framework.generics import UpdateAPIView, RetrieveUpdateAPIView, ListAPIView, GenericAPIView,RetrieveUpdateDestroyAPIView
 from .rbac import IsDuhead, IsAdmin, IsHrbp, IsPm, IsUser
 
 # Create your views here.
@@ -38,3 +38,21 @@ class UserRegistrationView(GenericAPIView):
             res_data = {"success": False, "message": " Something went wrong !", "data": {
                 "error": str(ex)}, }
             return Response(res_data, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+#Api endpoint to List all users 
+class UserListView(ListAPIView):
+    """View gives list of all users in the User table to Admin level users """
+
+    permission_classes = (IsAdmin,)
+    queryset = User.objects.filter(is_deleted=False).order_by('-id')
+    serializer_class =  UserProfileSerializer
+
+#Api endpoint to get a single user
+class UserDetailsAPIView(RetrieveUpdateDestroyAPIView):
+    """ View gives details of a single user by primary key , 
+    and enables other  operations like  update user details, delete user details etc """
+
+    permission_classes = (IsAdmin,)
+    queryset = User.objects.filter(is_deleted=False).order_by('-id')
+    serializer_class = UserProfileSerializer
