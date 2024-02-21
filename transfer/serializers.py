@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from .models import Transfer,TransferDetails
 from employee.models import Employee
-from employee.serializers import EmployeeSerializer
+from employee.serializers import EmployeeSerializer, EmployeeNestedSerializer
 
 
 
@@ -39,14 +39,14 @@ class TransferAndEmployeeSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Transfer
-        fields = '__all__'
+        fields = ["employee", "currentdu", "targetdu", "status", "transfer_date"]
 
     def get_employee(self, obj):
         try:
             if obj.employee:
-                employee = Employee.objects.get(id=obj.employee.id)
-                employee_serializer = EmployeeSerializer(employee)
+                employee_serializer = EmployeeNestedSerializer(obj.employee)
                 return employee_serializer.data
             return None
+        
         except Exception as ex:
             return None

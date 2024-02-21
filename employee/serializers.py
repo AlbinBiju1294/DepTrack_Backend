@@ -6,8 +6,7 @@ class EmployeeSerializer(serializers.ModelSerializer):
         model = Employee
         fields = "__all__"
 
-class EmployeeNameIdListSerializer(serializers.ModelSerializer):
+class EmployeeNestedSerializer(serializers.ModelSerializer):
     class Meta:
         model = Employee
-        fields = ['employee_number', 'name']
-        
+        fields = ["employee_number", "name"]
