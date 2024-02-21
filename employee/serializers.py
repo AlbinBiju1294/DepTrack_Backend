@@ -12,3 +12,9 @@ class PmSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['username','id']
+
+
+class EmployeeNestedSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Employee
+        fields = ["employee_number", "name"]

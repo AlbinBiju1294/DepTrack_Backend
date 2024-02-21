@@ -14,13 +14,13 @@ class RequestStatus():
 #table for storing the transfers
 class Transfer(models.Model):
 
-    employee = models.ForeignKey(Employee, null=True, on_delete=models.SET_NULL)
+    employee = models.ForeignKey(Employee, null=True, on_delete=models.SET_NULL, related_name='employeetransfers')
     currentdu = models.ForeignKey(DeliveryUnit, null=True, on_delete=models.SET_NULL, related_name = 'cdu' )
     targetdu = models.ForeignKey(DeliveryUnit, null=True, on_delete=models.SET_NULL, related_name = 'tdu')
     status = models.IntegerField(choices=RequestStatus.REQUEST_STATUS,default=1)
     rejection_reason = models.TextField(max_length = 200, null = True, blank = True )
     transfer_date = models.DateField(null = True, blank =True)
-
+    new_pm = models.ForeignKey(Employee, null=True, on_delete=models.SET_NULL, related_name='pmassigned')
  
 
     def __str__(self):
