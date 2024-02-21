@@ -24,7 +24,7 @@ class CreateTransferAPIView(APIView):
             transfer_serializer = TransferSerializer(data=request.data)
             if transfer_serializer.is_valid():
                 transfer = transfer_serializer.save()
-                request.data['transfer'] = transfer.id
+                request.data['transfer_id'] = transfer.id
                 transfer_detail_serializer = TransferDetailsSerializer(
                     data=request.data)
                 if transfer_detail_serializer.is_valid():
@@ -54,6 +54,7 @@ class GetTransferDetailsAPIView(APIView):
                 return Response(serializer.data, status=status.HTTP_200_OK)
             return Response({"status": False, "message": "Transfer details not found"}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
+            print(e)
             return Response({'status': False, "message": "Something went wrong"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
@@ -88,6 +89,7 @@ class FilterTransfersAPIView(APIView):
                 return Response(serializer.data, status=status.HTTP_200_OK)
             return Response({"status": False, "message": "Transfers not found"}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
+            print(e)
             return Response({'status': False, "message": "Something went wrong"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
@@ -102,11 +104,12 @@ class GetInitiatedRequestsApiView(APIView):
         try:
             du_id = request.data.get('du_id')
             query_set = Transfer.objects.filter(
-                Q(currentdu=du_id) & (Q(status=1) | Q(status=2)))
+                Q(currentdu_id=du_id) & (Q(status=1) | Q(status=2)))
             print(query_set)
             if query_set:
                 serializer = TransferAndDetailsSerializer(query_set, many=True)
                 return Response(serializer.data, status=status.HTTP_200_OK)
             return Response({"status": False, "message": "Transfer details not found"}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
+            print(e)
             return Response({'status': False, "message": "Something went wrong"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

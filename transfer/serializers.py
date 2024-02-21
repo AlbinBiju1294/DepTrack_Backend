@@ -17,7 +17,7 @@ class TransferDetailsSerializer(serializers.ModelSerializer):
 
 
 class TransferAndDetailsSerializer(serializers.ModelSerializer):
-    details = TransferDetailsSerializer(many=True)
+    details = TransferDetailsSerializer(many = False)
     employee = serializers.SerializerMethodField()
 
     class Meta:
@@ -26,8 +26,8 @@ class TransferAndDetailsSerializer(serializers.ModelSerializer):
 
     def get_employee(self, obj):
         try:
-            if obj.employee:
-                employee = Employee.objects.get(id=obj.employee.id)
+            if obj.employee_id:
+                employee = Employee.objects.get(id=obj.employee_id.id)
                 employee_serializer = EmployeeSerializer(employee)
                 return employee_serializer.data
             return None
