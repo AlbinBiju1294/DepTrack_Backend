@@ -11,4 +11,4 @@ class DeliveryUnit(models.Model):
 
     def __str__(self):
         return str(self.du_name)
-
+        
