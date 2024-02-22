@@ -131,12 +131,11 @@ class ChangeApprovalDatePmAPIView(APIView):
             data = request.data
             transfer_id = data.get("id")
             transfer = Transfer.objects.get(id=transfer_id)
-            new_pm = data.get("new_pm")
+            new_pm = data.get("newpm_id")
             assigned_emp_pm =  Employee.objects.get(id=new_pm)
             transfer.transfer_date = data.get("transfer_date")
-            transfer.new_pm = assigned_emp_pm
+            transfer.newpm_id = assigned_emp_pm
             transfer.status = 3
-            print(assigned_emp_pm)
             transfer.save()
             return Response({"status": True, 'message': 'Transfer date and pm changed successfully.'}, status=status.HTTP_201_CREATED)            
 
