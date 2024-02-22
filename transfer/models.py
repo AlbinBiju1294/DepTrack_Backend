@@ -20,7 +20,7 @@ class Transfer(models.Model):
     status = models.IntegerField(choices=RequestStatus.REQUEST_STATUS,default=1)
     rejection_reason = models.TextField(max_length = 200, null = True, blank = True )
     transfer_date = models.DateField(null = True, blank =True)
-    new_pm = models.ForeignKey(Employee, null=True, on_delete=models.SET_NULL, related_name='pmassigned')
+    new_pm = models.ForeignKey(Employee, null=True,blank=True, on_delete=models.SET_NULL, related_name='pmassigned')
  
 
     def __str__(self):

@@ -187,3 +187,31 @@ class PendingApprovalsView(APIView):
         
         except Exception as e:
             return Response({"status": False, "message": f"Something went wrong. {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
+#Change status for rejection of Transfer request
+class TargetDURejectAPIView(APIView):
+    """
+    When a target DU head rejects the incoming request the transfer status and rejection reason must be edited  in
+    the transfer table 
+    """
+
+    permission_classes = [IsDuhead]
+    
+    def patch(self, request):
+        try:
+            data = request.data
+            transfer_id = data.get("id")
+            transfer = Transfer.objects.get(id=transfer_id)
+            new_status = data.get("status")
+            rejection_reason=data.get("rejection_reason")
+            transfer.status = 4
+            transfer.rejection_reason=rejection_reason
+            transfer.save()
+            return Response({"status": True, 'message': 'Transfer rejection status and reason updated '}, status=status.HTTP_201_CREATED)            
+
+        except Exception as e:
+            print(e)
+            return Response({"status": False, "message": f"Something went wrong. {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+ 
