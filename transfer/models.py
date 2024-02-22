@@ -14,13 +14,15 @@ class RequestStatus():
 #table for storing the transfers
 class Transfer(models.Model):
 
-    employee = models.ForeignKey(Employee, null=True, on_delete=models.SET_NULL, related_name='employeetransfers')
-    currentdu = models.ForeignKey(DeliveryUnit, null=True, on_delete=models.SET_NULL, related_name = 'cdu' )
-    targetdu = models.ForeignKey(DeliveryUnit, null=True, on_delete=models.SET_NULL, related_name = 'tdu')
-    status = models.IntegerField(choices=RequestStatus.REQUEST_STATUS,default=1)
+    employee_id = models.ForeignKey(Employee, null=True, on_delete=models.SET_NULL,db_column = 'employee_id')
+    currentdu_id = models.ForeignKey(DeliveryUnit, null=True, on_delete=models.SET_NULL, related_name = 'cdu',db_column = 'currentdu_id')
+    targetdu_id = models.ForeignKey(DeliveryUnit, null=True, on_delete=models.SET_NULL, related_name = 'tdu',db_column = 'targetdu_id' )
+    status = models.IntegerField(choices=RequestStatus.REQUEST_STATUS)
     rejection_reason = models.TextField(max_length = 200, null = True, blank = True )
     transfer_date = models.DateField(null = True, blank =True)
-    new_pm = models.ForeignKey(Employee, null=True,blank=True, on_delete=models.SET_NULL, related_name='pmassigned')
+    newpm_id = models.ForeignKey(Employee, null=True, on_delete=models.SET_NULL,db_column = 'newpm_id',related_name = 'newpm_id')
+    initiated_by = models.ForeignKey(Employee, null=True, on_delete=models.SET_NULL,db_column = 'initiated_by',related_name = 'initiated_by')
+
  
 
     def __str__(self):
@@ -35,7 +37,7 @@ class Band():
 #table for storing the transfer details like employee skills
 class TransferDetails(models.Model):
 
-    transfer = models.ForeignKey(Transfer,null=True, on_delete=models.SET_NULL,related_name='details')
+    transfer_id = models.OneToOneField(Transfer,null=True,on_delete=models.CASCADE,related_name='details',db_column = 'transfer_id')
     employee_band = models.IntegerField(choices=Band.band_level,default=1)
     total_experience = models.IntegerField(null = False, blank = False)
     experion_experience = models.IntegerField(null = False, blank = False)
