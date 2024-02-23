@@ -30,7 +30,7 @@ class UserRegistrationView(GenericAPIView):
                 return Response(res_data, status=status.HTTP_201_CREATED)
             else:
                 err_data = str(serializer.errors)
-                res_data = {"success": False, "message": "Something weBnt wrong", "data": {
+                res_data = {"success": False, "message": "Something went wrong", "data": {
                     "error": err_data}}
                 return Response(res_data, status=status.HTTP_400_BAD_REQUEST)
 

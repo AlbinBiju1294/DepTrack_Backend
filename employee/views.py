@@ -1,24 +1,20 @@
 from django.shortcuts import render
 from .models import Employee
-from .serializers import EmployeeSerializer
+from .serializers import EmployeeSerializer, DeliveryUnitMappingSerializer
 from rest_framework.permissions import AllowAny, IsAuthenticated
-from rest_framework.generics import ListCreateAPIView
 from rest_framework import generics, status, permissions
 from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.response import Response
 from .serializers import *
-from rest_framework.generics import ListAPIView
+from rest_framework.generics import ListAPIView, ListCreateAPIView
+from rest_framework.views import APIView
 from rest_framework import generics, status, permissions
 from user.rbac import *
-from employee.models import Employee
 
 # for pm listing
 from rest_framework.response import Response
 from user.models import User
-from user.rbac import IsDuhead
 from .serializers import PmSerializer
-
-
 
 
 # To list or create employee
@@ -26,8 +22,6 @@ class EmployeeListCreateView(ListCreateAPIView):
     permission_classes = (AllowAny,)
     queryset = Employee.objects.all().order_by('-id')
     serializer_class = EmployeeSerializer
-
-
 
     pagination_class = LimitOffsetPagination
     def list(self, request, *args, **kwargs):
@@ -79,13 +73,6 @@ class PMListView(generics.ListAPIView):
             print(ex)
             return Response({"message":"Something wrong"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-        
-      
-
-
-
-
-
 
 #View to search employee table 
 class EmployeeSearchListView(generics.ListAPIView):
@@ -103,3 +90,25 @@ class EmployeeSearchListView(generics.ListAPIView):
         if name:
             queryset = queryset.filter(name__icontains=name)
         return queryset
+    
+#To update the name of DU head for a DU
+class UpdateDUHeadAPIView(APIView):
+    """
+    It is a post request which enables the admin to change the DU head for a DU, this will be updated in the 
+    DeliveryUnitMapping table along with delivery unit id. 
+    """
+    def post(self, request):
+        permission_classes = [IsAdmin]
+        try:
+            data = request.data
+            du_head_name = data.get("du_head")
+            du_id = data.get("du_id")
+            du_head_emp_id = Employee.objects.get(name=du_head_name).id
+            du_mapping_obj = DeliveryUnitMapping.objects.get(du_id=du_id)
+            du_mapping_obj.du_head_id = du_head_emp_id
+            du_mapping_obj.du_id = du_id
+            du_mapping_obj.save()
+            return Response({'message': 'DU head updated successfully'}, status=status.HTTP_200_OK)
+        
+        except Exception as e:
+            return Response({'message': 'DU head cannot be updated due to error'}, status=status.HTTP_406_NOT_ACCEPTABLE)

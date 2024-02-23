@@ -2,12 +2,13 @@
 from rest_framework import status
 from rest_framework.response import Response
 from django.db.models import Q
-from datetime import datetime
+from datetime import datetime, timedelta
 from rest_framework.views import APIView
 from .serializers import TransferSerializer, TransferDetailsSerializer
 from rest_framework.permissions import IsAuthenticated
 from .models import Transfer, TransferDetails
-from employee.models import Employee
+from employee.models import Employee, DeliveryUnitMapping
+from delivery_unit.models import DeliveryUnit
 from .serializers import TransferSerializer, TransferDetailsSerializer, TransferAndDetailsSerializer, TransferAndEmployeeSerializer
 from user.rbac import IsDuhead, IsPm, IsHrbp
 
@@ -130,14 +131,14 @@ class ChangeApprovalDatePmAPIView(APIView):
         try:
             data = request.data
             transfer_id = data.get("id")
-            transfer = Transfer.objects.get(id=transfer_id)
             new_pm = data.get("newpm_id")
+            transfer = Transfer.objects.get(id=transfer_id)
             assigned_emp_pm =  Employee.objects.get(id=new_pm)
-            transfer.transfer_date = data.get("transfer_date")
             transfer.newpm_id = assigned_emp_pm
+            transfer.transfer_date = data.get("transfer_date")
             transfer.status = 3
             transfer.save()
-            return Response({"status": True, 'message': 'Transfer date and pm changed successfully.'}, status=status.HTTP_201_CREATED)            
+            return Response({"status": True, 'message': 'Transfer date and pm changed successfully.'}, status=status.HTTP_200_OK)            
 
         except Exception as e:
             print(e)
@@ -157,7 +158,7 @@ class ListTransferHistoryAPIView(APIView):
             employee_id = request.user.employee_id.id
             authenticated_employee = Employee.objects.get(id=employee_id)
             du_id = authenticated_employee.du.id                                             #department of DU head
-            transfer = Transfer.objects.filter(Q(currentdu=du_id) | Q(targetdu=du_id))       #data from transfer table
+            transfer = Transfer.objects.filter(Q(current_du=du_id) | Q(target_du=du_id))       #data from transfer table
             serializer = TransferAndEmployeeSerializer(transfer, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
         
@@ -181,11 +182,36 @@ class PendingApprovalsView(APIView):
             authenticated_employee = Employee.objects.get(id=employee_id)
             du_id = authenticated_employee.du.id
             if request.data.get('tab_switch_btn') == 1:                                       
-                transfer_requests = Transfer.objects.filter(status=2, targetdu=du_id)
+                transfer_requests = Transfer.objects.filter(status=2, target_du=du_id)
             elif request.data.get('tab_switch_btn') == 2:
-                transfer_requests = Transfer.objects.filter(status=1, currentdu=du_id)
+                transfer_requests = Transfer.objects.filter(status=1, current_du=du_id)
             serializer = TransferAndEmployeeSerializer(transfer_requests, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
         
         except Exception as e:
             return Response({"status": False, "message": f"Something went wrong. {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+#To retreive the number of transfers happened in all DUs to display in 
+class NoOfTransfersInDUsAPIView(APIView):
+    """
+    It is for the dashboard to be displayed as a bar-graph. It retreives the number of transfers happened 
+    in th last 30 days in each DU.
+    """
+    permission_classes = [IsDuhead | IsHrbp | IsPm]
+
+    def get(self,request):
+        try:
+            thirty_days_ago = datetime.now() - timedelta(days=30)
+            du_ids = DeliveryUnitMapping.objects.all().values_list('du_id')
+            result_data=[]          
+            for du_id in du_ids:
+                transfers_in_du = Transfer.objects.filter(Q(currentdu_id=du_id) | Q(targetdu_id=du_id))
+                transfers_in_last_thirty_days = transfers_in_du.filter(transfer_date__gte=thirty_days_ago).count()
+                result_data.append = {'no_of_transfers': transfers_in_last_thirty_days}
+            return Response({'result':result_data}, status=status.HTTP_200_OK)
+        
+        except Exception as e:
+            return Response({'message':'Error in fetching number of transfers in a DU'}, status=status.HTTP_400_BAD_REQUEST)
+
+
