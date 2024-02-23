@@ -14,5 +14,11 @@ class Employee(models.Model):
 
     def __str__(self):
         return str(self.id)
+    
+class DeliveryUnitMapping(models.Model):
+    du_id = models.ForeignKey(DeliveryUnit,null=True,on_delete= models.SET_NULL,db_column ='du_id')
+    du_head_id=models.ForeignKey(Employee,null=True, blank=True,on_delete=models.SET_NULL,related_name="du_head_id",db_column= 'du_head_id')
+    hrbp_id=models.ForeignKey(Employee, null=True, blank=True, on_delete= models.SET_NULL,related_name="hrbp_id",db_column= 'hrbp_id')
 
-
+    def __str__(self):
+        return str(self.id)
