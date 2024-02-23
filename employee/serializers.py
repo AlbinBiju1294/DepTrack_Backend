@@ -1,6 +1,8 @@
 from rest_framework import serializers
 from .models import *
 from user.models import User
+from delivery_unit.models import DeliveryUnit
+from delivery_unit.serializers import DeliveryUnitSerializer,NestedDeliveryUnitSerializer
 
 
 class EmployeeSerializer(serializers.ModelSerializer):
@@ -17,7 +19,7 @@ class PmSerializer(serializers.ModelSerializer):
 class EmployeeNestedSerializer(serializers.ModelSerializer):
     class Meta:
         model = Employee
-        fields = ["employee_number", "name"]
+        fields = ["id","employee_number", "name"]
 
 class DeliveryUnitMappingSerializer(serializers.ModelSerializer):
     class Meta:
@@ -27,3 +29,32 @@ class DeliveryUnitMappingSerializer(serializers.ModelSerializer):
 
 
         
+
+
+class DuAndEmployeeSerializer(serializers.ModelSerializer):
+    du_head = serializers.SerializerMethodField(source='du_head_id')
+    du = serializers.SerializerMethodField(source='du_id')
+
+    class Meta:
+        model = DeliveryUnitMapping
+        fields = ['id','du','du_head','hrbp_id']
+
+    def get_du_head(self, obj):
+        try:
+            if obj.du_head_id_id:
+                employee = Employee.objects.get(id=obj.du_head_id.id)
+                employee_serializer = EmployeeNestedSerializer(employee)
+                return employee_serializer.data
+            return None
+        except Exception as ex:
+            return None
+        
+    def get_du(self, obj):
+        try:
+            if obj.du_id:
+                du = DeliveryUnit.objects.get(id=obj.du_id.id)
+                du_serializer = NestedDeliveryUnitSerializer(du)
+                return du_serializer.data
+            return None
+        except Exception as ex:
+            return None

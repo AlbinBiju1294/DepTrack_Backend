@@ -8,4 +8,5 @@ urlpatterns = [
     path('bands', BandListView.as_view(), name='band-list'),
     path('pm-list', PMListView.as_view(), name='pm-list'),
     path("search-employee", EmployeeSearchListView.as_view(), name="searchemployee"),
+    path("list-duheads", DuHeadList.as_view(), name="duheadlist"),
 ]

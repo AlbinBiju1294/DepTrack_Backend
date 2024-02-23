@@ -9,7 +9,7 @@ from rest_framework.permissions import IsAuthenticated
 from .models import Transfer, TransferDetails
 from employee.models import Employee, DeliveryUnitMapping
 from delivery_unit.models import DeliveryUnit
-from .serializers import TransferSerializer, TransferDetailsSerializer, TransferAndDetailsSerializer, TransferAndEmployeeSerializer
+from .serializers import TransferSerializer, TransferDetailsSerializer, TransferAndDetailsSerializer, TransferAndEmployeeSerializer, TransferAndEmployeeSerializerTwo
 from user.rbac import IsDuhead, IsPm, IsHrbp
 
 
@@ -33,7 +33,7 @@ class CreateTransferAPIView(APIView):
                     transfer_detail_serializer.save()
                     return Response({"status": True, 'message': 'Transfer created successfully.'}, status=status.HTTP_201_CREATED)
                 else:
-                    return Response({"status": True, 'message': transfer_detail_serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+                    return Response({"status": False, 'message': transfer_detail_serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
             else:
                 return Response(transfer_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         except:
@@ -69,12 +69,12 @@ class FilterTransfersAPIView(APIView):
 
     def get(self, request):
         try:
-            filter_params = request.query_params
+            filter_params = request.data
             query_set = Transfer.objects.all()
             for key, value in filter_params.items():
                 if key == 'employee_name':
                     query_set = query_set.filter(
-                        employee__name__icontains=value)
+                        employee_id__name__icontains=value)
                 elif value and key != 'start_date' and key != 'end_date':
                     query_set = query_set.filter(**{key: value})
 
@@ -87,7 +87,7 @@ class FilterTransfersAPIView(APIView):
                     transfer_date__range=(start_date, end_date))
 
             if query_set:
-                serializer = TransferAndDetailsSerializer(query_set, many=True)
+                serializer = TransferAndEmployeeSerializerTwo(query_set, many=True)
                 return Response(serializer.data, status=status.HTTP_200_OK)
             return Response({"status": False, "message": "Transfers not found"}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
@@ -109,12 +109,11 @@ class GetInitiatedRequestsApiView(APIView):
                 Q(currentdu_id=du_id) & (Q(status=1) | Q(status=2)))
             print(query_set)
             if query_set:
-                serializer = TransferAndEmployeeSerializer(query_set, many=True)
+                serializer = TransferAndEmployeeSerializerTwo(query_set, many=True)
                 return Response(serializer.data, status=status.HTTP_200_OK)
-            return Response({"status": False, "message": "Transfer details not found"}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"message": "Transfer details not found"}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
-            print(e)
-            return Response({'status': False, "message": "Something went wrong"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 #To post the details when a request is approved by T-DU head
