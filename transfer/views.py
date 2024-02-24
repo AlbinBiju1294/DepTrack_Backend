@@ -188,3 +188,50 @@ class PendingApprovalsView(APIView):
         
         except Exception as e:
             return Response({"status": False, "message": f"Something went wrong. {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
+##To cancel the initiated transfer request by the duhead
+class CancelTransfer(APIView):
+    permission_classes = [IsDuhead]
+    """The transfer status of a particular tarnsfer_id is changed to 
+        the new status=5 in the transfer table which indicates that the 
+        transfer is cancelled.Done bythe current_du head"""
+
+    def post(self, request):
+        transfer_id = request.data.get('transfer_id')
+
+        if not transfer_id :
+            return Response({"error": "transfer_id is required in the request body"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            transfer_instance = Transfer.objects.get(id=transfer_id)
+            transfer_instance.status = 5
+            transfer_instance.save()
+            return Response({"message": "Transfer status changed "}, status=status.HTTP_200_OK)
+        except Transfer.DoesNotExist:
+            return Response({"error": "Transfer does not exist"}, status=status.HTTP_404_NOT_FOUND)
+        
+        
+        
+
+##To get the count of transfer initiated,completed,rejected ,cancelled -dashboard
+class TransferStatusCountAPIView(APIView):
+    """ Allows the DU head to get the number of transfers intiated ,
+        completed,rejected and cancelled in his du"""
+    
+    permission_classes = [IsDuhead]
+    def get(self, request):
+        try:
+            logged_in_duhead_du = self.request.user.employee_id.du.id
+            transfer_count = {
+                "Transfer initiated": Transfer.objects.filter(currentdu_id=logged_in_duhead_du, status__in=[1, 2]).count(),
+                "Transfer completed": Transfer.objects.filter(currentdu_id=logged_in_duhead_du,status=3).count(),
+                "Transfer rejected": Transfer.objects.filter(currentdu_id=logged_in_duhead_du,status=4).count(),
+                "Transfer cancelled": Transfer.objects.filter(currentdu_id=logged_in_duhead_du,status=5).count(),
+            }
+            return Response(transfer_count, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({ "message": f"Something went wrong. {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        
