@@ -7,7 +7,8 @@ from rest_framework.views import APIView
 from .serializers import TransferSerializer, TransferDetailsSerializer
 from rest_framework.permissions import IsAuthenticated
 from .models import Transfer, TransferDetails
-from .serializers import TransferSerializer, TransferDetailsSerializer, TransferAndDetailsSerializer
+from employee.models import Employee
+from .serializers import TransferSerializer, TransferDetailsSerializer, TransferAndDetailsSerializer, TransferAndEmployeeSerializer, TransferAndEmployeeSerializerTwo
 from user.rbac import IsDuhead, IsPm, IsHrbp
 
 
@@ -24,14 +25,14 @@ class CreateTransferAPIView(APIView):
             transfer_serializer = TransferSerializer(data=request.data)
             if transfer_serializer.is_valid():
                 transfer = transfer_serializer.save()
-                request.data['transfer'] = transfer.id
+                request.data['transfer_id'] = transfer.id
                 transfer_detail_serializer = TransferDetailsSerializer(
                     data=request.data)
                 if transfer_detail_serializer.is_valid():
                     transfer_detail_serializer.save()
                     return Response({"status": True, 'message': 'Transfer created successfully.'}, status=status.HTTP_201_CREATED)
                 else:
-                    return Response({"status": True, 'message': transfer_detail_serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+                    return Response({"status": False, 'message': transfer_detail_serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
             else:
                 return Response(transfer_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         except:
@@ -54,6 +55,7 @@ class GetTransferDetailsAPIView(APIView):
                 return Response(serializer.data, status=status.HTTP_200_OK)
             return Response({"status": False, "message": "Transfer details not found"}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
+            print(e)
             return Response({'status': False, "message": "Something went wrong"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
@@ -66,12 +68,12 @@ class FilterTransfersAPIView(APIView):
 
     def get(self, request):
         try:
-            filter_params = request.query_params
+            filter_params = request.data
             query_set = Transfer.objects.all()
             for key, value in filter_params.items():
                 if key == 'employee_name':
                     query_set = query_set.filter(
-                        employee__name__icontains=value)
+                        employee_id__name__icontains=value)
                 elif value and key != 'start_date' and key != 'end_date':
                     query_set = query_set.filter(**{key: value})
 
@@ -84,10 +86,11 @@ class FilterTransfersAPIView(APIView):
                     transfer_date__range=(start_date, end_date))
 
             if query_set:
-                serializer = TransferAndDetailsSerializer(query_set, many=True)
+                serializer = TransferAndEmployeeSerializerTwo(query_set, many=True)
                 return Response(serializer.data, status=status.HTTP_200_OK)
             return Response({"status": False, "message": "Transfers not found"}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
+            print(e)
             return Response({'status': False, "message": "Something went wrong"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
@@ -102,15 +105,89 @@ class GetInitiatedRequestsApiView(APIView):
         try:
             du_id = request.data.get('du_id')
             query_set = Transfer.objects.filter(
-                Q(currentdu=du_id) & (Q(status=1) | Q(status=2)))
+                Q(currentdu_id=du_id) & (Q(status=1) | Q(status=2)))
             print(query_set)
             if query_set:
-                serializer = TransferAndDetailsSerializer(query_set, many=True)
+                serializer = TransferAndEmployeeSerializerTwo(query_set, many=True)
                 return Response(serializer.data, status=status.HTTP_200_OK)
-            return Response({"status": False, "message": "Transfer details not found"}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"message": "Transfer details not found"}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
-            return Response({'status': False, "message": "Something went wrong"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
+#To post the details when a request is approved by T-DU head
+class ChangeApprovalDatePmAPIView(APIView):
+    """
+    When a target DU head views the detailed view of a transfer request, they can approve or reject it.
+    If 'approve' is clicked then the transfer date can be changed and a new pm can be assigned. This data 
+    is posted into the transfer table.
+    """
+
+    permission_classes = [IsDuhead]
+    
+    def put(self, request):
+        try:
+            data = request.data
+            transfer_id = data.get("id")
+            transfer = Transfer.objects.get(id=transfer_id)
+            new_pm = data.get("newpm_id")
+            assigned_emp_pm =  Employee.objects.get(id=new_pm)
+            transfer.transfer_date = data.get("transfer_date")
+            transfer.newpm_id = assigned_emp_pm
+            transfer.status = 3
+            transfer.save()
+            return Response({"status": True, 'message': 'Transfer date and pm changed successfully.'}, status=status.HTTP_201_CREATED)            
+
+        except Exception as e:
+            print(e)
+            return Response({"status": False, "message": f"Something went wrong. {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            
+
+# To list all the transfers that happened in a DU, in all statuses 
+class ListTransferHistoryAPIView(APIView):
+    """
+    Lists all the transfers that happened in a DU, both incoming and outgoing transfers. It takes details 
+    from both the transfer table and employee table.
+    """
+    permission_classes = [IsAuthenticated, IsDuhead | IsPm | IsHrbp]
+
+    def get(self, request):
+        try:
+            employee_id = request.user.employee_id.id
+            authenticated_employee = Employee.objects.get(id=employee_id)
+            du_id = authenticated_employee.du.id                                             #department of DU head
+            transfer = Transfer.objects.filter(Q(currentdu=du_id) | Q(targetdu=du_id))       #data from transfer table
+            serializer = TransferAndEmployeeSerializer(transfer, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        
+        except Exception as e:
+            # logger.error(f"Transfer History Listing API: {e}")
+            return Response({"status": False, "message": f"Something went wrong. {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+
+#To display all the pending approvals for a DU head.
+class PendingApprovalsView(APIView):
+    """
+    To view all the pending transfer approval requests for a DU head both internal and external i.e., the requests
+    initiated by PM which awaits the approval of DU head and the requests from another DU to accept an employee from
+    their respective DU. 
+    """
+    permission_classes = [IsAuthenticated, IsDuhead]
+
+    def get(self, request):
+        try:
+            employee_id = request.user.employee_id.id
+            authenticated_employee = Employee.objects.get(id=employee_id)
+            du_id = authenticated_employee.du.id
+            if request.data.get('tab_switch_btn') == 1:                                       
+                transfer_requests = Transfer.objects.filter(status=2, targetdu=du_id)
+            elif request.data.get('tab_switch_btn') == 2:
+                transfer_requests = Transfer.objects.filter(status=1, currentdu=du_id)
+            serializer = TransferAndEmployeeSerializer(transfer_requests, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        
+        except Exception as e:
+            return Response({"status": False, "message": f"Something went wrong. {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 
@@ -148,10 +225,10 @@ class TransferStatusCountAPIView(APIView):
         try:
             logged_in_duhead_du = self.request.user.employee_id.du.id
             transfer_count = {
-                "Transfer initiated": Transfer.objects.filter(currentdu=logged_in_duhead_du, status__in=[1, 2]).count(),
-                "Transfer completed": Transfer.objects.filter(currentdu=logged_in_duhead_du,status=3).count(),
-                "Transfer rejected": Transfer.objects.filter(currentdu=logged_in_duhead_du,status=4).count(),
-                "Transfer cancelled": Transfer.objects.filter(currentdu=logged_in_duhead_du,status=5).count(),
+                "Transfer initiated": Transfer.objects.filter(currentdu_id=logged_in_duhead_du, status__in=[1, 2]).count(),
+                "Transfer completed": Transfer.objects.filter(currentdu_id=logged_in_duhead_du,status=3).count(),
+                "Transfer rejected": Transfer.objects.filter(currentdu_id=logged_in_duhead_du,status=4).count(),
+                "Transfer cancelled": Transfer.objects.filter(currentdu_id=logged_in_duhead_du,status=5).count(),
             }
             return Response(transfer_count, status=status.HTTP_200_OK)
         except Exception as e:

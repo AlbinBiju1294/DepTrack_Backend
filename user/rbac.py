@@ -13,6 +13,7 @@ class IsAdmin(permissions.BasePermission):
             return False
         
 class IsDuhead(permissions.BasePermission):
+    
     def has_permission(self,request,view):
 
         try:
@@ -25,6 +26,7 @@ class IsDuhead(permissions.BasePermission):
             return False
         
 class IsPm(permissions.BasePermission):
+
     def has_permission(self,request,view):
         try:
             user_role = request.user.user_role
@@ -36,6 +38,7 @@ class IsPm(permissions.BasePermission):
             return False
         
 class IsUser(permissions.BasePermission):
+
     def has_permission(self,request,view):
         try:
             user_role = request.user.user_role
@@ -47,6 +50,7 @@ class IsUser(permissions.BasePermission):
             return False
     
 class IsHrbp(permissions.BasePermission):
+    
     def has_permission(self,request,view):
         try:
             user_role = request.user.user_role

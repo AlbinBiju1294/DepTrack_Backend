@@ -16,9 +16,10 @@ class User(AbstractUser):
     is_deleted = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    employee_id = models.ForeignKey(Employee, null=True, blank=True, on_delete= models.SET_NULL)
+    employee_id = models.ForeignKey(Employee, null=True, blank=True, on_delete= models.SET_NULL,db_column = 'employee_id')
     groups = models.ManyToManyField(Group, blank=True, related_name="custom_users_groups")
     user_permissions = models.ManyToManyField(Permission, blank=True, related_name="custom_users_permissions")
+    
 
     def __str__(self):
         return str(self.username)

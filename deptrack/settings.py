@@ -50,7 +50,6 @@ INSTALLED_APPS = [
     'delivery_unit',
     'user',
     'transfer',
-    'django_filters',
 ]
 
 MIDDLEWARE = [
@@ -148,13 +147,13 @@ REST_FRAMEWORK = {
         'rest_framework_simplejwt.authentication.JWTAuthentication', 
     ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
-    'PAGE_SIZE': 100
+    'PAGE_SIZE': 100,
     
 }
 
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=200),
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=20000000),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=3),
     "ROTATE_REFRESH_TOKENS": False,
     "BLACKLIST_AFTER_ROTATION": False,
