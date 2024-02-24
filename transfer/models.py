@@ -14,9 +14,9 @@ class RequestStatus():
 #table for storing the transfers
 class Transfer(models.Model):
 
-    employee_id = models.ForeignKey(Employee, null=True, on_delete=models.SET_NULL,db_column = 'employee_id')
-    currentdu_id = models.ForeignKey(DeliveryUnit, null=True, on_delete=models.SET_NULL, related_name = 'cdu',db_column = 'currentdu_id')
-    targetdu_id = models.ForeignKey(DeliveryUnit, null=True, on_delete=models.SET_NULL, related_name = 'tdu',db_column = 'targetdu_id' )
+    employee_id = models.ForeignKey(Employee, null=False, blank=False, on_delete=models.CASCADE,db_column = 'employee_id')
+    currentdu_id = models.ForeignKey(DeliveryUnit, null=False, on_delete=models.CASCADE, related_name = 'cdu',db_column = 'currentdu_id')
+    targetdu_id = models.ForeignKey(DeliveryUnit, null=False, on_delete=models.CASCADE, related_name = 'tdu',db_column = 'targetdu_id' )
     status = models.IntegerField(choices=RequestStatus.REQUEST_STATUS)
     rejection_reason = models.TextField(max_length = 200, null = True, blank = True )
     transfer_date = models.DateField(null = True, blank =True)
