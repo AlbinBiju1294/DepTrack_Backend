@@ -99,7 +99,7 @@ class EmployeeSearchListView(generics.ListAPIView):
 
         logged_in_user_department_id = self.request.user.employee_id.du.id
         name = self.request.data.get('name')
-        queryset = Employee.objects.filter(du_id=logged_in_user_department_id)
+        queryset = Employee.objects.filter(du_id=logged_in_user_department_id) #make query simple
         if name:
             queryset = queryset.filter(name__icontains=name)
         return queryset

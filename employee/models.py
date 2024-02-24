@@ -16,3 +16,8 @@ class Employee(models.Model):
         return str(self.id)
 
 
+#Mapping table for department to department head and hrbp
+class DeliveryUnitMapping(models.Model):
+    du_id = models.ForeignKey(DeliveryUnit,null=True,on_delete= models.SET_NULL,db_column="db_column")
+    du_head_id=models.ForeignKey(Employee,null=True, blank=True,on_delete=models.SET_NULL,related_name="du_head_id",db_column="du_head_id")
+    hrbp_id=models.ForeignKey(Employee, null=True, blank=True, on_delete= models.SET_NULL,related_name="hrbp_id",db_column="hrbp_id")
