@@ -13,9 +13,6 @@ class IsAdmin(permissions.BasePermission):
             return False
         
 class IsDuhead(permissions.BasePermission):
-
-
-    
     def has_permission(self,request,view):
 
         try:

@@ -6,5 +6,10 @@ urlpatterns = [
     path('create-transfer/', CreateTransferAPIView.as_view(), name='create-transfer'),
     path('get-transfer-details/', GetTransferDetailsAPIView.as_view(), name='get-transfer-details'),
     path('filter-transfers/', FilterTransfersAPIView.as_view(), name='filter-transfers'),
-    path('track-initiated-requests/', GetInitiatedRequestsApiView.as_view(), name='track-initiated-request')
+    path('track-initiated-requests/', GetInitiatedRequestsApiView.as_view(), name='track-initiated-request'),
+    path('cancel/', CancelTransfer.as_view(), name='cancel_transfer'),
+    path('status-count/', TransferStatusCountAPIView.as_view(), name='transfer-status-count'),
+
+
+
 ]

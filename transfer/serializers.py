@@ -33,3 +33,5 @@ class TransferAndDetailsSerializer(serializers.ModelSerializer):
             return None
         except Exception as ex:
             return None
+        
+
