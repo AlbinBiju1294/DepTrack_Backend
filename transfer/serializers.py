@@ -3,8 +3,6 @@ from .models import Transfer,TransferDetails
 from employee.models import Employee
 from employee.serializers import EmployeeSerializer, EmployeeNestedSerializer
 
-
-
 class TransferSerializer(serializers.ModelSerializer):
     class Meta:
         model = Transfer
