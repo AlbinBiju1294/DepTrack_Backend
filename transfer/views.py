@@ -370,7 +370,7 @@ class CDURequestApprovalAPIView(APIView):
             transfer_id = data.get("transfer_id")
             transfer_date = data.get("transfer_date")
 
-            if transfer_id == ' ' | transfer_date == ' ':
+            if transfer_id == ' ':
                 return Response({'error': 'Provide the request data correctly.'}, status=status.HTTP_400_BAD_REQUEST)
 
             try:
