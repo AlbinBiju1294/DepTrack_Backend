@@ -96,23 +96,25 @@ class EmployeeSearchListView(generics.ListAPIView):
 class UpdateDUHeadAPIView(APIView):
     """
     It is a post request which enables the admin to change the DU head for a DU, this will be updated in the 
-    DeliveryUnitMapping table along with delivery unit id. 
+    DeliveryUnitMapping table.
     """
+    permission_classes = [IsAdmin]
+
     def post(self, request):
-        permission_classes = [IsAdmin]
+        
         try:
             data = request.data
-            du_head_name = data.get("du_head")
+            new_du_head_id = data.get("du_head_id")
             du_id = data.get("du_id")
-            du_head_emp_id = Employee.objects.get(name=du_head_name).id
+
+            du_head_emp_id = Employee.objects.get(id=new_du_head_id).id
             du_mapping_obj = DeliveryUnitMapping.objects.get(du_id=du_id)
             du_mapping_obj.du_head_id = du_head_emp_id
-            du_mapping_obj.du_id = du_id
             du_mapping_obj.save()
             return Response({'message': 'DU head updated successfully'}, status=status.HTTP_200_OK)
         
         except Exception as e:
-            return Response({'message': 'DU head cannot be updated due to error'}, status=status.HTTP_406_NOT_ACCEPTABLE)
+            return Response({'message': 'DU head cannot be updated due to error: {e}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class DuHeadList(ListCreateAPIView):

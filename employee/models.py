@@ -7,7 +7,7 @@ class Employee(models.Model):
     name = models.CharField(max_length = 50, null = False, blank =False, unique = True)
     mail_id = models.EmailField(null = False, blank =False, unique = True)
     designation = models.CharField(max_length = 50, null = True, blank = True)
-    du_id = models.ForeignKey(DeliveryUnit, null=True, blank=True, on_delete= models.SET_NULL)
+    du_id = models.ForeignKey(DeliveryUnit, null=True, blank=True, on_delete= models.SET_NULL,db_column="du_id")
     profile_pic_path = models.CharField(max_length = 50, null = True, blank = True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
