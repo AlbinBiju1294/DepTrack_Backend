@@ -9,4 +9,5 @@ urlpatterns = [
     path('pm-list/', PMListView.as_view(), name='pm-list'),
     path("search-employee/", EmployeeSearchListView.as_view(), name="searchemployee"),
     path("list-duheads/", DuHeadAndDuList.as_view(), name="duheadlist"),
+    path("update-duhead/", UpdateDUHeadAPIView.as_view(), name="update-duhead"),
 ]
