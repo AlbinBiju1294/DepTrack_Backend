@@ -53,19 +53,22 @@ class UserListView(ListAPIView):
                 serializer = self.get_serializer(queryset, many=True)
                 return Response({"data": serializer.data, "Response": "Users Listed Successfully"}, status=status.HTTP_200_OK)
             else:
-                return  Response({"Response": "Failed to retrieve Users"}, status=status.HTTP_404_NOT_FOUND)
+                return  Response({"error": "Failed to retrieve Users"}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
-            return Response({"Response": "Internal Error","error":str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({"error": "Internal Error","error":str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 
   
-#Api endpoint to get a single user
-class UserDetailsAPIView(RetrieveUpdateDestroyAPIView):
-    """ View gives details of a single user by primary key , 
-    and enables other  operations like  update user details, delete user details etc """
 
-    
-    permission_classes = (IsAdmin,)
-    serializer_class = UserProfileSerializer
-    queryset = User.objects.filter(is_deleted=False).order_by('-id')
+
+
+  
+# #Api endpoint to get a single user
+# class UserDetailsAPIView(RetrieveUpdateDestroyAPIView):
+#     """ View gives details of a single user by primary key , 
+#     and enables other  operations like  update user details, delete user details etc """
+
+#     permission_classes = (IsAdmin,)
+#     serializer_class = UserProfileSerializer
+#     queryset = User.objects.filter(is_deleted=False).order_by('-id')
