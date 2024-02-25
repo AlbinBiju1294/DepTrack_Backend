@@ -11,7 +11,7 @@ from employee.models import Employee, DeliveryUnitMapping
 from delivery_unit.models import DeliveryUnit
 from .serializers import TransferSerializer, TransferDetailsSerializer, TransferAndDetailsSerializer, TransferAndEmployeeSerializer, TransferAndEmployeeSerializerTwo
 from user.rbac import *
-from rest_framework.pagination import LimitOffsetPagination, IsAdmin
+from rest_framework.pagination import LimitOffsetPagination
 import logging
 
 logger = logging.getLogger("django")
