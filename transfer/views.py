@@ -176,10 +176,10 @@ class ListTransferHistoryAPIView(APIView):
         try:
             employee_id = request.user.employee_id.id
             authenticated_employee = Employee.objects.get(id=employee_id)
-            du_id = authenticated_employee.du.id  # department of DU head
-            transfer = Transfer.objects.filter(Q(currentdu=du_id) | Q(
-                targetdu=du_id))  # data from transfer table
-            serializer = TransferAndEmployeeSerializer(transfer, many=True)
+            du_id = authenticated_employee.du_id.id  # department of DU head
+            transfer = Transfer.objects.filter(Q(currentdu_id=du_id) | Q(
+                targetdu_id=du_id))  # data from transfer table
+            serializer = TransferAndEmployeeSerializerTwo(transfer, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
 
         except Exception as e:
@@ -246,7 +246,7 @@ class TransferStatusCountAPIView(APIView):
 
     def get(self, request):
         try:
-            logged_in_duhead_du = self.request.user.employee_id.du.id
+            logged_in_duhead_du = self.request.user.employee_id.du_id.id
             transfer_count = {
                 "Transfer initiated": Transfer.objects.filter(currentdu_id=logged_in_duhead_du, status__in=[1, 2]).count(),
                 "Transfer completed": Transfer.objects.filter(currentdu_id=logged_in_duhead_du, status=3).count(),
