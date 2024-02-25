@@ -1,16 +1,15 @@
 from django.shortcuts import render
 from .models import Employee
-from .serializers import EmployeeSerializer
+from .serializers import EmployeeSerializer, DeliveryUnitMappingSerializer
 from rest_framework.permissions import AllowAny, IsAuthenticated
-from rest_framework.generics import ListCreateAPIView
 from rest_framework import generics, status, permissions
 from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.response import Response
 from .serializers import *
-from rest_framework.generics import ListAPIView
+from rest_framework.generics import ListAPIView, ListCreateAPIView
+from rest_framework.views import APIView
 from rest_framework import generics, status, permissions
 from user.rbac import *
-from employee.models import Employee
 
 # for pm listing
 from rest_framework.response import Response
@@ -93,18 +92,70 @@ class EmployeeSearchListView(generics.ListAPIView):
     Lists employess according to name or part of name in the search field and department of the logged in DU head
     """
     serializer_class = EmployeeSerializer
-    permission_classes = [IsDuhead,]
+    permission_classes = [IsDuhead|IsAdmin]
+    pagination_class=None
 
-    def get_queryset(self):
+    def list(self, request, *args, **kwargs):
+        try:
+            logged_in_user_department_id = self.request.user.employee_id.du_id.id
+            name = self.request.data.get('name')
+            if name is None or name =="":
+                 return Response({'error': 'Name parameter is required.'}, status=status.HTTP_400_BAD_REQUEST)
+            queryset = Employee.objects.filter(du_id=logged_in_user_department_id, name__icontains=name)
+            if  queryset.exists():
+                serializer = self.get_serializer(queryset, many=True)
+                return Response({"data": serializer.data, "message": "Employees Listed"}, status=status.HTTP_200_OK)
+            else:
+                return  Response({"error": "No on matching search"}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({"error": "Internal Error"+str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-        logged_in_user_department_id = self.request.user.employee_id.du.id
-        name = self.request.data.get('name')
-        queryset = Employee.objects.filter(du_id=logged_in_user_department_id)
-        if name:
-            queryset = queryset.filter(name__icontains=name)
-        return queryset
 
-class DuHeadList(ListCreateAPIView):
+class DuHeadAndDuList(ListAPIView):
+    """ Api endpoint to fetch  Du heads and currosponding Du's"""
+
     permission_classes = [IsAdmin]
-    queryset = DeliveryUnitMapping.objects.filter()
     serializer_class = DuAndEmployeeSerializer
+    paginate_by=None
+
+    def list(self, request, *args, **kwargs):
+        try:
+            queryset = DeliveryUnitMapping.objects
+            if  queryset.exists():
+                serializer = self.get_serializer(queryset, many=True)
+                return Response({"data": serializer.data, "message": "DU heads Listed Successfully"}, status=status.HTTP_200_OK)
+            else:
+                return  Response({"error": "No DU heads"}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({"error": "Internal Error","error":str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class UpdateDUHeadAPIView(APIView):
+    """
+    It is a post request which enables the admin to change the DU head for a DU, this will be updated in the 
+    DeliveryUnitMapping table.
+    """
+    permission_classes = [IsAdmin]
+
+    def post(self, request):
+        
+        try:
+            data = request.data
+            new_du_head_id = data.get("du_head_id")
+            du_id = data.get("du_id")
+
+            try:
+                du_head_emp_id = Employee.objects.get(id=new_du_head_id).id
+                du_mapping_obj = DeliveryUnitMapping.objects.get(du_id=du_id)
+            except Exception as e:
+                return Response({'error': 'Error in retreiving employee and delivery unit mapping objects'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            
+            du_mapping_obj.du_head_id = du_head_emp_id
+            du_mapping_obj.save()
+            return Response({'message': 'DU head updated successfully'}, status=status.HTTP_200_OK)
+        
+        except Exception as e:
+            return Response({'error': 'DU head cannot be updated due to error: {e}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
+
