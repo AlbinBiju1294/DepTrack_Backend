@@ -37,7 +37,22 @@ class GetAllDeliveryUnits(ListAPIView):
 
     permission_classes=(IsAuthenticated,)
     serializer_class= DeliveryUnitSerializer
-    queryset= DeliveryUnit.objects.all()
+
+    def list(self, request, *args, **kwargs):
+        try:
+            queryset = DeliveryUnit.objects.all()
+            if  queryset.exists():
+                serializer = self.get_serializer(queryset, many=True)
+                return Response({"data": serializer.data, "Message": "Departments Listed"}, status=status.HTTP_200_OK)
+            else:
+                return  Response({"error": "Failed to retrieve Departments"}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({"error": "Internal Error","error":str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
+
+
 
 
 class GetDUNameAndHead(ListAPIView):

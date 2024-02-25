@@ -255,4 +255,39 @@ class TransferStatusCountAPIView(APIView):
             }
             return Response(transfer_count, status=status.HTTP_200_OK)
         except Exception as e:
-            return Response({"message": f"Something went wrong. {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({ "message": f"Something went wrong. {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        
+
+
+
+
+#Change status for rejection of Transfer request
+class TargetDURejectAPIView(APIView):
+    """
+    When a target DU head rejects the incoming request the transfer status and rejection reason must be edited  in
+    the transfer table 
+    """
+
+    permission_classes = [IsDuhead|IsAdmin]
+    
+    def patch(self, request):
+        try:
+            data = request.data
+            transfer_id = data.get("transfer_id")
+            rejection_reason=data.get("rejection_reason")
+            if transfer_id and rejection_reason:
+                 transfer = Transfer.objects.get(id=transfer_id)
+                #  if transfer==null:
+                #      return Response({ 'message': 'No Transfer matching that id'}, status=status.HTTP_404_NOT_FOUND)            
+                 transfer.status = 4
+                 transfer.rejection_reason=rejection_reason
+                 transfer.save()
+                 return Response({ 'message': 'Transfer rejection status and reason updated '}, status=status.HTTP_200_OK)            
+            else:
+                return Response({"error":"Fields Missing"},status=status.HTTP_400_BAD_REQUEST)
+
+        except Exception as e:
+            print(e)
+            return Response({ "errror": f"Something went wrong. {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+ 

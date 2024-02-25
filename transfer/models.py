@@ -23,7 +23,6 @@ class Transfer(models.Model):
 
     def __str__(self):
         return str(self.id)
-
 #setting the bands available
 class Band():
     band_level = [("A1", "level1"), ("A2", "level2"),
