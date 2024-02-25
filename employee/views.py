@@ -111,9 +111,6 @@ class EmployeeSearchListView(generics.ListAPIView):
             return Response({"error": "Internal Error"+str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-
-
-
 class DuHeadAndDuList(ListAPIView):
     """ Api endpoint to fetch  Du heads and currosponding Du's"""
 
@@ -131,6 +128,29 @@ class DuHeadAndDuList(ListAPIView):
                 return  Response({"error": "No DU heads"}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             return Response({"error": "Internal Error","error":str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class UpdateDUHeadAPIView(APIView):
+    """
+    It is a post request which enables the admin to change the DU head for a DU, this will be updated in the 
+    DeliveryUnitMapping table.
+    """
+    permission_classes = [IsAdmin]
+
+    def post(self, request):
+        
+        try:
+            data = request.data
+            new_du_head_id = data.get("du_head_id")
+            du_id = data.get("du_id")
+
+            du_head_emp_id = Employee.objects.get(id=new_du_head_id).id
+            du_mapping_obj = DeliveryUnitMapping.objects.get(du_id=du_id)
+            du_mapping_obj.du_head_id = du_head_emp_id
+            du_mapping_obj.save()
+            return Response({'message': 'DU head updated successfully'}, status=status.HTTP_200_OK)
+        
+        except Exception as e:
+            return Response({'message': 'DU head cannot be updated due to error: {e}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 
