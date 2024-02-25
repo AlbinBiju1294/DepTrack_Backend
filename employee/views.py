@@ -105,6 +105,6 @@ class EmployeeSearchListView(generics.ListAPIView):
         return queryset
 
 class DuHeadList(ListCreateAPIView):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAdmin]
     queryset = DeliveryUnitMapping.objects.filter()
     serializer_class = DuAndEmployeeSerializer

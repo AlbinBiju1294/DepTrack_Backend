@@ -3,8 +3,6 @@ from django.db import models
 from employee.models import Employee 
 from delivery_unit.models import DeliveryUnit
 
-
-
 #setting the predefined status codes
 class RequestStatus():
     REQUEST_STATUS = [(1, "Initiated_by_PM"), (2, "approved_by_DUHEAD"),
@@ -14,16 +12,14 @@ class RequestStatus():
 #table for storing the transfers
 class Transfer(models.Model):
 
-    employee_id = models.ForeignKey(Employee, null=True, on_delete=models.SET_NULL,db_column = 'employee_id')
-    currentdu_id = models.ForeignKey(DeliveryUnit, null=True, on_delete=models.SET_NULL, related_name = 'cdu',db_column = 'currentdu_id')
-    targetdu_id = models.ForeignKey(DeliveryUnit, null=True, on_delete=models.SET_NULL, related_name = 'tdu',db_column = 'targetdu_id' )
+    employee_id = models.ForeignKey(Employee, null=False, blank=False, on_delete=models.CASCADE,db_column = 'employee_id')
+    currentdu_id = models.ForeignKey(DeliveryUnit, null=False, blank=False, on_delete=models.CASCADE, related_name = 'cdu',db_column = 'currentdu_id')
+    targetdu_id = models.ForeignKey(DeliveryUnit, null=False, blank=False, on_delete=models.CASCADE, related_name = 'tdu',db_column = 'targetdu_id')
     status = models.IntegerField(choices=RequestStatus.REQUEST_STATUS)
     rejection_reason = models.TextField(max_length = 200, null = True, blank = True )
-    transfer_date = models.DateField(null = True, blank =True)
-    newpm_id = models.ForeignKey(Employee, null=True, on_delete=models.SET_NULL,db_column = 'newpm_id',related_name = 'newpm_id')
-    initiated_by = models.ForeignKey(Employee, null=True, on_delete=models.SET_NULL,db_column = 'initiated_by',related_name = 'initiated_by')
-
- 
+    transfer_date = models.DateField(null = False, blank =False)
+    newpm_id = models.ForeignKey(Employee, null=True, on_delete=models.CASCADE,db_column = 'newpm_id',related_name = 'newpm_id')
+    initiated_by = models.ForeignKey(Employee, null=False, blank=False, on_delete=models.CASCADE,db_column = 'initiated_by',related_name = 'initiated_by')
 
     def __str__(self):
         return str(self.id)
@@ -37,7 +33,7 @@ class Band():
 #table for storing the transfer details like employee skills
 class TransferDetails(models.Model):
 
-    transfer_id = models.OneToOneField(Transfer,null=True,on_delete=models.CASCADE,related_name='details',db_column = 'transfer_id')
+    transfer_id = models.OneToOneField(Transfer,null=False,blank=False,on_delete=models.CASCADE,related_name='details',db_column = 'transfer_id')
     employee_band = models.IntegerField(choices=Band.band_level,default=1)
     total_experience = models.IntegerField(null = False, blank = False)
     experion_experience = models.IntegerField(null = False, blank = False)
