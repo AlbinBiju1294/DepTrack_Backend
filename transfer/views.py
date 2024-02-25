@@ -153,36 +153,36 @@ class ChangeApprovalDatePmAPIView(APIView):
             data = request.data
             transfer_id = data.get("transfer_id")
             new_pm = data.get("newpm_id")
-            targetdu_id = data.get("targetdu_id")
             transfer_date = data.get("transfer_date")
 
-            if transfer_id == ' ' | new_pm == ' ' | targetdu_id == ' ':
-                return Response({'message': 'Provide the request data correctly.'}, status=status.HTTP_400_BAD_REQUEST)
+            if transfer_id == ' ' | new_pm == ' ':
+                return Response({'error': 'Provide the request data correctly.'}, status=status.HTTP_400_BAD_REQUEST)
 
             try:
                 transfer = Transfer.objects.get(id=transfer_id)
             except Transfer.DoesNotExist:
-                return Response({'message': 'Transfer details not found.'}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({'error': 'Transfer details not found.'}, status=status.HTTP_400_BAD_REQUEST)
             
             try:
                 assigned_emp_pm =  Employee.objects.get(id=new_pm)
+                transferred_employee_id = transfer.employee_id
+                transferred_employee_object = Employee.objects.get(id=transferred_employee_id)
             except Employee.DoesNotExist:
-                return Response({'message': 'Employee not found.'}, status=status.HTTP_400_BAD_REQUEST)
-            
+                return Response({'error': 'Employee not found.'}, status=status.HTTP_400_BAD_REQUEST)
 
             transfer.newpm_id = assigned_emp_pm.id
             transfer.transfer_date = transfer_date
             transfer.status = 3
             transfer.save()
 
-            assigned_emp_pm.du_id = targetdu_id
-            assigned_emp_pm.save()
+            transferred_employee_object.du_id = transfer.targetdu_id
+            transferred_employee_object.save()
 
             return Response({'message': 'Transfer date and pm changed successfully.'}, status=status.HTTP_200_OK)            
 
         except Exception as e:
-            # logger(e)
-            return Response({'message': f'Error in changing the transfer date and pm : {e}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            logger(e)
+            return Response({'error': f'Error in changing the transfer date and pm : {e}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             
 
 # To list all the transfers that happened in a DU, in all statuses
@@ -212,11 +212,11 @@ class ListTransferHistoryAPIView(APIView):
             if response_data:
                 return Response({'data': response_data}, status=status.HTTP_200_OK)
             else:
-                return Response({'message': 'Transfer history cannot be retreived.'}, status=status.HTTP_404_NOT_FOUND)
+                return Response({'error': 'Transfer history cannot be retreived.'}, status=status.HTTP_404_NOT_FOUND)
         
         except Exception as e:
-            # logger.error(f"Transfer History Listing API: {e}")
-            return Response({'message': f'Transfer history cannot be retreived: {e}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            logger.error(f"Transfer History Listing API: {e}")
+            return Response({'error': f'Transfer history cannot be retreived: {e}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
 
 # To display all the pending approvals for a DU head.
@@ -235,7 +235,7 @@ class PendingApprovalsView(APIView):
             tab_switch_btn = data.get('tab_switch_btn')
 
             if du_id == ' ' | tab_switch_btn == ' ':
-                return Response({'message': 'Provide required data.'}, status=status.HTTP_200_OK)
+                return Response({'error': 'Provide required data.'}, status=status.HTTP_200_OK)
             
             if tab_switch_btn == 1:                                                                 #external=1                                       
                 transfer_requests = Transfer.objects.filter(status=2, target_du=du_id)
@@ -246,10 +246,10 @@ class PendingApprovalsView(APIView):
             if serializer.data:
                 return Response({'data': serializer.data}, status=status.HTTP_200_OK)
             else:
-                return Response({"message": f"Error in retreiving pending approvals: {e}"}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({"error": f"Error in retreiving pending approvals: {e}"}, status=status.HTTP_400_BAD_REQUEST)
 
         except Exception as e:
-            return Response({"message": f"Error in retreiving pending approvals: {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({"error": f"Error in retreiving pending approvals: {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 #To retreive the number of transfers happened in all DUs to display in dashboard
@@ -270,7 +270,7 @@ class NoOfTransfersInDUsAPIView(APIView):
                     transfers_in_last_thirty_days = Transfer.objects.filter( Q(currentdu_id=du_id) | Q(targetdu_id=du_id), status__in=[3],
                                                                         transfer_date__gte=thirty_days_ago).count()
                 except Transfer.DoesNotExist:
-                    return Response({'message': 'DU transfer details not found.'}, status=status.HTTP_400_BAD_REQUEST)
+                    return Response({'error': 'DU transfer details not found.'}, status=status.HTTP_400_BAD_REQUEST)
                 
                 result_data.append = {
                                         'du_id': du_id,
@@ -279,13 +279,10 @@ class NoOfTransfersInDUsAPIView(APIView):
                 if result_data:
                     return Response({'data':result_data}, status=status.HTTP_200_OK)
                 else:
-                    return Response({'message': 'Unable to retreive number of transfers in a DU'}, status=status.HTTP_400_BAD_REQUEST)
+                    return Response({'error': 'Unable to retreive number of transfers in a DU'}, status=status.HTTP_400_BAD_REQUEST)
         
         except Exception as e:
-            return Response({'message':'Error in fetching number of transfers in a DU: {e}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
-
+            return Response({'error':'Error in fetching number of transfers in a DU: {e}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 # To cancel the initiated transfer request by the duhead
@@ -329,11 +326,7 @@ class TransferStatusCountAPIView(APIView):
             return Response(transfer_count, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({ "message": f"Something went wrong. {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
         
-
-
-
 
 #Change status for rejection of Transfer request
 class TargetDURejectAPIView(APIView):
@@ -364,3 +357,36 @@ class TargetDURejectAPIView(APIView):
             print(e)
             return Response({ "errror": f"Something went wrong. {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
  
+#To approve a request by current DU head when the pm initiates the request
+class CDURequestApprovalAPIView(APIView):
+    """
+    When a request is initiated by the PM, current DU head views the request and approve it. This post requests
+    enables to change the date of transfer and sets the status as 2, that is approval by current DU head. 
+    """
+
+    permission_classes = [IsDuhead]
+
+    def post(self, request):
+        try:
+            data = request.data
+            transfer_id = data.get("transfer_id")
+            transfer_date = data.get("transfer_date")
+
+            if transfer_id == ' ' | transfer_date == ' ':
+                return Response({'error': 'Provide the request data correctly.'}, status=status.HTTP_400_BAD_REQUEST)
+
+            try:
+                transfer = Transfer.objects.get(id=transfer_id)
+            except Transfer.DoesNotExist:
+                return Response({'error': 'Transfer details not found.'}, status=status.HTTP_400_BAD_REQUEST)
+
+            transfer.transfer_date = transfer_date
+            transfer.status = 2
+            transfer.save()
+
+            return Response({'message': 'Transfer request approved by current DU head successfully.'}, status=status.HTTP_200_OK)            
+
+        except Exception as e:
+            logger(e)
+            return Response({'error': f'Error in approving transfer request by current DU head : {e}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            

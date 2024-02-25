@@ -52,16 +52,10 @@ class GetAllDeliveryUnits(ListAPIView):
             return Response({"error": "Internal Error","error":str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-
-
-
-
-
 class GetDUNameAndHead(ListAPIView):
     permission_classes = [IsAdmin]
 
     def get(self, request):
-        
 
         du_heads = User.objects.filter(user_role=1).values_list('employee_id', flat=True)
         du_details = []
@@ -93,11 +87,11 @@ class DashboardDuDetails(APIView):
             if result:
                 return Response({'result': result, 'message': 'Du details retreived successfully'}, status=status.HTTP_200_OK)
             else:
-                return Response({'message': 'Du details couldnot be retreived.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                return Response({'error': 'Du details couldnot be retreived.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         
         except Exception as e:
-                return Response({'message': 'Du details couldnot be retreived.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                return Response({'error': 'Du details couldnot be retreived.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 
