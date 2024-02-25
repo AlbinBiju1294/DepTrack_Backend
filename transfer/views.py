@@ -11,7 +11,7 @@ from employee.models import Employee, DeliveryUnitMapping
 from delivery_unit.models import DeliveryUnit
 from .serializers import TransferSerializer, TransferDetailsSerializer, TransferAndDetailsSerializer, TransferAndEmployeeSerializer, TransferAndEmployeeSerializerTwo
 from user.rbac import *
-from rest_framework.pagination import LimitOffsetPagination, IsAdmin
+from rest_framework.pagination import LimitOffsetPagination
 import logging
 
 logger = logging.getLogger("django")
@@ -344,8 +344,6 @@ class TargetDURejectAPIView(APIView):
             rejection_reason=data.get("rejection_reason")
             if transfer_id and rejection_reason:
                  transfer = Transfer.objects.get(id=transfer_id)
-                #  if transfer==null:
-                #      return Response({ 'message': 'No Transfer matching that id'}, status=status.HTTP_404_NOT_FOUND)            
                  transfer.status = 4
                  transfer.rejection_reason=rejection_reason
                  transfer.save()
