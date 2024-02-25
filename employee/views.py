@@ -14,13 +14,17 @@ from user.rbac import *
 # for pm listing
 from rest_framework.response import Response
 from user.models import User
+from user.rbac import IsDuhead,IsAdmin
 from .serializers import PmSerializer
 
 
 # To list or create employee
 class EmployeeListCreateView(ListCreateAPIView):
-    permission_classes = (AllowAny,)
-    queryset = Employee.objects.all().order_by('-id')
+    """Allows the admin to list all the employees in the order of their
+      employee_id.Details corresponding to all the fields of employee table
+      is displayed.pagination is also applied"""
+    permission_classes = (IsAdmin,)
+    queryset = Employee.objects.all().order_by('id')
     serializer_class = EmployeeSerializer
 
     pagination_class = LimitOffsetPagination
@@ -51,16 +55,21 @@ class EmployeeListCreateView(ListCreateAPIView):
 
 # To GET the list of Bands
 class BandListView(ListCreateAPIView):
+    """Extract the band levels from the band_level list so that the
+      required band level can be selected by the DU or PM while filling form"""
+
     def get(self, request):
         band_level = [("A1", "LEVEL1"), ("A2", "LEVEL2"),
                       ("B1", "LEVEL3"), ("B2", "LEVEL4"), ("C1", "LEVEL5")]
-        # Extract the band levels from the band_level list
-        band_levels = [band[0] for band in band_level]
+        band_levels = [band[0] for band in band_level]  
         return Response({"band_levels": band_levels})
 
 
 # To list the new PM names in the C-DU
 class PMListView(generics.ListAPIView):
+    """Lists the names and id of the PMs in the du so that the du head can select one Pm 
+      from this list for assigning to the new employee once the incoming transfer request 
+      is accepted.User objects are filtered for the condition user_role=2"""
     serializer_class = PmSerializer
     permission_classes = [IsDuhead]
 
@@ -72,7 +81,9 @@ class PMListView(generics.ListAPIView):
             return pm_users
         except Exception as ex:
             print(ex)
-            return Response({"message": "Something wrong"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({"message":"Something went wrong"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
 
 
 # View to search employee table
@@ -81,43 +92,46 @@ class EmployeeSearchListView(generics.ListAPIView):
     Lists employess according to name or part of name in the search field and department of the logged in DU head
     """
     serializer_class = EmployeeSerializer
-    permission_classes = [IsDuhead,]
+    permission_classes = [IsDuhead|IsAdmin]
+    pagination_class=None
 
-    def get_queryset(self):
-
-        logged_in_user_department_id = self.request.user.employee_id.du.id
-        name = self.request.data.get('name')
-        queryset = Employee.objects.filter(du_id=logged_in_user_department_id)
-        if name:
-            queryset = queryset.filter(name__icontains=name)
-        return queryset
-    
-#To update the name of DU head for a DU
-class UpdateDUHeadAPIView(APIView):
-    """
-    It is a post request which enables the admin to change the DU head for a DU, this will be updated in the 
-    DeliveryUnitMapping table.
-    """
-    permission_classes = [IsAdmin]
-
-    def post(self, request):
-        
+    def list(self, request, *args, **kwargs):
         try:
-            data = request.data
-            new_du_head_id = data.get("du_head_id")
-            du_id = data.get("du_id")
-
-            du_head_emp_id = Employee.objects.get(id=new_du_head_id).id
-            du_mapping_obj = DeliveryUnitMapping.objects.get(du_id=du_id)
-            du_mapping_obj.du_head_id = du_head_emp_id
-            du_mapping_obj.save()
-            return Response({'message': 'DU head updated successfully'}, status=status.HTTP_200_OK)
-        
+            logged_in_user_department_id = self.request.user.employee_id.du_id.id
+            name = self.request.data.get('name')
+            if name is None or name =="":
+                 return Response({'error': 'Name parameter is required.'}, status=status.HTTP_400_BAD_REQUEST)
+            queryset = Employee.objects.filter(du_id=logged_in_user_department_id, name__icontains=name)
+            if  queryset.exists():
+                serializer = self.get_serializer(queryset, many=True)
+                return Response({"data": serializer.data, "message": "Employees Listed"}, status=status.HTTP_200_OK)
+            else:
+                return  Response({"error": "No on matching search"}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
-            return Response({'message': 'DU head cannot be updated due to error: {e}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({"error": "Internal Error"+str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-class DuHeadList(ListCreateAPIView):
-    permission_classes = [AllowAny]
-    queryset = DeliveryUnitMapping.objects.filter()
+
+
+
+class DuHeadAndDuList(ListAPIView):
+    """ Api endpoint to fetch  Du heads and currosponding Du's"""
+
+    permission_classes = [IsAdmin]
     serializer_class = DuAndEmployeeSerializer
+    paginate_by=None
+
+    def list(self, request, *args, **kwargs):
+        try:
+            queryset = DeliveryUnitMapping.objects
+            if  queryset.exists():
+                serializer = self.get_serializer(queryset, many=True)
+                return Response({"data": serializer.data, "message": "DU heads Listed Successfully"}, status=status.HTTP_200_OK)
+            else:
+                return  Response({"error": "No DU heads"}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({"error": "Internal Error","error":str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
+

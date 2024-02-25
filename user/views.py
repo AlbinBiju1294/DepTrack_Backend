@@ -43,16 +43,32 @@ class UserRegistrationView(GenericAPIView):
 #Api endpoint to List all users 
 class UserListView(ListAPIView):
     """View gives list of all users in the User table to Admin level users """
-
+    
     permission_classes = (IsAdmin,)
-    queryset = User.objects.filter(is_deleted=False).order_by('-id')
     serializer_class =  UserProfileSerializer
+    def list(self, request, *args, **kwargs):
+        try:
+            queryset = User.objects.filter(is_deleted=False).order_by('-id')
+            if  queryset.exists():
+                serializer = self.get_serializer(queryset, many=True)
+                return Response({"data": serializer.data, "message": "Users Listed Successfully"}, status=status.HTTP_200_OK)
+            else:
+                return  Response({"error": "Failed to retrieve Users"}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({"error": "Internal Error","error":str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-#Api endpoint to get a single user
-class UserDetailsAPIView(RetrieveUpdateDestroyAPIView):
-    """ View gives details of a single user by primary key , 
-    and enables other  operations like  update user details, delete user details etc """
 
-    permission_classes = (IsAdmin,)
-    queryset = User.objects.filter(is_deleted=False).order_by('-id')
-    serializer_class = UserProfileSerializer
+
+  
+
+
+
+
+# #Api endpoint to get a single user
+# class UserDetailsAPIView(RetrieveUpdateDestroyAPIView):
+#     """ View gives details of a single user by primary key , 
+#     and enables other  operations like  update user details, delete user details etc """
+
+#     permission_classes = (IsAdmin,)
+#     serializer_class = UserProfileSerializer
+#     queryset = User.objects.filter(is_deleted=False).order_by('-id')
