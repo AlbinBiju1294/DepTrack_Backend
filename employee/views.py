@@ -105,7 +105,7 @@ class EmployeeSearchListView(generics.ListAPIView):
             queryset = Employee.objects.filter(du_id=logged_in_user_department_id, name__icontains=name)
             if  queryset.exists():
                 serializer = self.get_serializer(queryset, many=True)
-                return Response({"data": serializer.data, "Message": "Employees Listed"}, status=status.HTTP_200_OK)
+                return Response({"data": serializer.data, "message": "Employees Listed"}, status=status.HTTP_200_OK)
             else:
                 return  Response({"error": "No on matching search"}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
@@ -127,7 +127,7 @@ class DuHeadAndDuList(ListAPIView):
             queryset = DeliveryUnitMapping.objects
             if  queryset.exists():
                 serializer = self.get_serializer(queryset, many=True)
-                return Response({"data": serializer.data, "Response": "DU heads Listed Successfully"}, status=status.HTTP_200_OK)
+                return Response({"data": serializer.data, "message": "DU heads Listed Successfully"}, status=status.HTTP_200_OK)
             else:
                 return  Response({"error": "No DU heads"}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:

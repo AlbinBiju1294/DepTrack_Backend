@@ -285,9 +285,9 @@ class TargetDURejectAPIView(APIView):
                  transfer.save()
                  return Response({ 'message': 'Transfer rejection status and reason updated '}, status=status.HTTP_200_OK)            
             else:
-                return Response({"message":"Fields Missing"},status=status.HTTP_400_BAD_REQUEST)
+                return Response({"error":"Fields Missing"},status=status.HTTP_400_BAD_REQUEST)
 
         except Exception as e:
             print(e)
-            return Response({"status": False, "message": f"Something went wrong. {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({ "errror": f"Something went wrong. {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
  

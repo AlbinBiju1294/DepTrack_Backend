@@ -51,7 +51,7 @@ class UserListView(ListAPIView):
             queryset = User.objects.filter(is_deleted=False).order_by('-id')
             if  queryset.exists():
                 serializer = self.get_serializer(queryset, many=True)
-                return Response({"data": serializer.data, "Response": "Users Listed Successfully"}, status=status.HTTP_200_OK)
+                return Response({"data": serializer.data, "message": "Users Listed Successfully"}, status=status.HTTP_200_OK)
             else:
                 return  Response({"error": "Failed to retrieve Users"}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
@@ -63,7 +63,7 @@ class UserListView(ListAPIView):
 
 
 
-  
+
 # #Api endpoint to get a single user
 # class UserDetailsAPIView(RetrieveUpdateDestroyAPIView):
 #     """ View gives details of a single user by primary key , 
