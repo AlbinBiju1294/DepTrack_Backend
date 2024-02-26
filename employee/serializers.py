@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Employee,DeliveryUnitMapping
+from .models import *
 from user.models import User
 from delivery_unit.models import DeliveryUnit
 from delivery_unit.serializers import DeliveryUnitSerializer,NestedDeliveryUnitSerializer
@@ -20,6 +20,15 @@ class EmployeeNestedSerializer(serializers.ModelSerializer):
     class Meta:
         model = Employee
         fields = ["id","employee_number", "name"]
+
+class DeliveryUnitMappingSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DeliveryUnitMapping
+        fields = '__all__'
+
+
+
+        
 
 
 class DuAndEmployeeSerializer(serializers.ModelSerializer):
