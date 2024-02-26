@@ -48,7 +48,7 @@ class UserAuthenticationTestCase(TestCase):
         self.assertEqual(get_user_model().objects.count(), 2)
         self.assertEqual(get_user_model().objects.last().username, 'testuser')
 
-    def test_user_registration_fail(self):
+    def test_user_registration_unauthorized(self):
         url = reverse('registration')
         self.token = None
         employee1 = Employee.objects.create(id=45, name="jdfnjk", mail_id="ajsn@gmail.com")
@@ -59,9 +59,26 @@ class UserAuthenticationTestCase(TestCase):
             "user_role": 2, 
             "employee_id": employee1.id 
         }
-        
 
+        self.client.credentials()
+        
         response = self.client.post(url, data, format='json')
         print(response)
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(get_user_model().objects.count(), 2)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertEqual(get_user_model().objects.count(), 1)
+
+    def test_user_registration_fail(self):
+        url = reverse('registration')
+        self.token = None
+        employee1 = Employee.objects.create(id=45, name="jdfnjk", mail_id="ajsn@gmail.com")
+        data = {
+            'password': 'testpass',
+            'email': 'test1@example.com',
+            "user_role": 2, 
+            "employee_id": employee1.id 
+        }
+        
+        response = self.client.post(url, data, format='json')
+        print(response)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(get_user_model().objects.count(), 1)
