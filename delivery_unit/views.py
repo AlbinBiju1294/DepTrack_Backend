@@ -13,6 +13,9 @@ from rest_framework.views import APIView
 from .models import DeliveryUnit
 from .serializers import DuSerializer
 from user.rbac import IsAdmin
+import logging
+
+logger = logging.getLogger("django")
 
 # To add new Du
 class DeliveryUnitCreateAPIView(APIView):
@@ -78,7 +81,7 @@ class GetDUNameAndHead(ListAPIView):
         return Response({du_details})
     
 class DashboardDuDetails(APIView):
-    permission_classes = [IsAdmin | IsDuhead | IsPm | IsPm]
+    permission_classes = [IsAdmin | IsDuhead | IsPm | IsHrbp]
 
     def get(self, request):
         try:
@@ -92,14 +95,14 @@ class DashboardDuDetails(APIView):
                     'no_of_employees': total_no_of_employees}
             
             if result:
-                return Response({'data': result, 'message': 'Du details retreived successfully'}, status=status.HTTP_200_OK)
+                return Response({'data': result, 'message': 'Du details retreived successfully.'}, status=status.HTTP_200_OK)
             else:
-                return Response({'error': 'Du details couldnot be retreived.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                return Response({'error': 'Du details couldnot be retreived.'}, status=status.HTTP_404_NOT_FOUND)
 
         
         except Exception as e:
-                print(e)
-                return Response({'error': 'Du details couldnot be retreived.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                logger.error(e)
+                return Response({'error': {str(e)}}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 
