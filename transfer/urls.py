@@ -12,6 +12,7 @@ urlpatterns = [
     path('pending-approvals/', PendingApprovalsView.as_view(), name='pending-approvals'),
     path('cancel/', CancelTransfer.as_view(), name='cancel_transfer'),
     path('status-count/', TransferStatusCountAPIView.as_view(), name='transfer-status-count'),
+   
 
 
 

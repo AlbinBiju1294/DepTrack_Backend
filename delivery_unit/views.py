@@ -19,16 +19,23 @@ class DeliveryUnitCreateAPIView(APIView):
        then an error message will be displayed"""
     
     permission_classes = [IsAdmin]
+    # serializer_class= DuSerializer
+
     def post(self, request):
         try:
+            du_name = request.data.get('du_name')
+            if not du_name :
+                return Response({"message": "du_name is required in the request body"}, status=status.HTTP_400_BAD_REQUEST)
+            if DeliveryUnit.objects.filter(du_name=du_name).exists():
+                return Response({"message": "Delivery Unit with this name already exists."}, status=status.HTTP_400_BAD_REQUEST)
+
             serializer = DuSerializer(data=request.data)
             if serializer.is_valid():
                 serializer.save()
                 return Response({"message":"new DU added successfully"}, status=status.HTTP_201_CREATED)
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-            res_data = {"message": " Something went wrong !", "data": {"error": str(e)}, }
-            return Response(res_data, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response( {"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 #view to list all Delivery Units

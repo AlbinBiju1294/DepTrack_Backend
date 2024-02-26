@@ -58,12 +58,14 @@ class EmployeeListCreateView(ListCreateAPIView):
 class BandListView(ListCreateAPIView):
     """Extract the band levels from the band_level list so that the
       required band level can be selected by the DU or PM while filling form"""
-
+    permission_classes=[IsDuhead|IsPm]
     def get(self, request):
         band_level = [("A1", "LEVEL1"), ("A2", "LEVEL2"),
                       ("B1", "LEVEL3"), ("B2", "LEVEL4"), ("C1", "LEVEL5")]
         band_levels = [band[0] for band in band_level]  
-        return Response({"band_levels": band_levels})
+        return Response({"message": "Band levels retrieved successfully", "band_levels": band_levels}, status=status.HTTP_200_OK)    
+    def post(self, request):
+        return Response({"message":"Method \"POST\" not allowed."},status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
 
 # To list the new PM names in the C-DU
@@ -73,16 +75,20 @@ class PMListView(generics.ListAPIView):
       is accepted.User objects are filtered for the condition user_role=2"""
     serializer_class = PmSerializer
     permission_classes = [IsDuhead]
-
-    def get_queryset(self):
+    pagination_class=None
+    def get(self,request):
         try:
             logged_in_duhead_du = self.request.user.employee_id.du
-            pm_users = User.objects.filter(
-                user_role=2, employee_id__du=logged_in_duhead_du)
-            return pm_users
+            pm_users = User.objects.filter(user_role=2, employee_id__du=logged_in_duhead_du)
+            if not pm_users: 
+                return Response({"message": "No Project Managers available "}, status=status.HTTP_404_NOT_FOUND)
+            
+            serializer = self.get_serializer(pm_users, many=True)
+            return Response({ "message":"PM listing successful","data":serializer.data}, status=status.HTTP_200_OK)
+
         except Exception as ex:
             print(ex)
-            return Response({"message":"Something went wrong"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({"message": str(ex)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 

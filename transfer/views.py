@@ -196,21 +196,27 @@ class CancelTransfer(APIView):
     permission_classes = [IsDuhead]
     """The transfer status of a particular tarnsfer_id is changed to 
         the new status=5 in the transfer table which indicates that the 
-        transfer is cancelled.Done bythe current_du head"""
+        transfer is cancelled.Done by the current_du head"""
 
     def post(self, request):
         transfer_id = request.data.get('transfer_id')
-
-        if not transfer_id :
-            return Response({"error": "transfer_id is required in the request body"}, status=status.HTTP_400_BAD_REQUEST)
-        
         try:
+            if not transfer_id :
+                return Response({"message": "transfer_id is required in the request body"}, status=status.HTTP_400_BAD_REQUEST)
+            logged_in_duhead_du = self.request.user.employee_id.du.id
             transfer_instance = Transfer.objects.get(id=transfer_id)
-            transfer_instance.status = 5
-            transfer_instance.save()
-            return Response({"message": "Transfer status changed "}, status=status.HTTP_200_OK)
+            if transfer_instance.currentdu_id_id == logged_in_duhead_du:
+                if transfer_instance.status not in [3, 4]:
+                    transfer_instance.status = 5
+                    transfer_instance.save()
+                    return Response({"message": "Transfer status changed to cancel"}, status=status.HTTP_200_OK)
+                return Response({"message": "Cancellation is not allowed. Transfer has already been approved or rejected."},
+                                status=status.HTTP_400_BAD_REQUEST)
+
+            return Response({"message": "Action not allowed. Employee does not belong to your Delivery Unit."},
+                                status=status.HTTP_403_FORBIDDEN)
         except Transfer.DoesNotExist:
-            return Response({"error": "Transfer does not exist"}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"message": "Transfer does not exist"}, status=status.HTTP_404_NOT_FOUND)
         
         
         
@@ -230,8 +236,6 @@ class TransferStatusCountAPIView(APIView):
                 "Transfer rejected": Transfer.objects.filter(currentdu_id=logged_in_duhead_du,status=4).count(),
                 "Transfer cancelled": Transfer.objects.filter(currentdu_id=logged_in_duhead_du,status=5).count(),
             }
-            return Response(transfer_count, status=status.HTTP_200_OK)
+            return Response({"message":"transfer count display successful","data":transfer_count}, status=status.HTTP_200_OK)
         except Exception as e:
-            return Response({ "message": f"Something went wrong. {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-        
+            return Response({ "message":str(e) }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
