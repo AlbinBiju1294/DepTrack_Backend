@@ -165,15 +165,15 @@ class ChangeApprovalDatePmAPIView(APIView):
 
             try:
                 transfer = Transfer.objects.get(id=transfer_id)
-            except Transfer.DoesNotExist:
-                return Response({'error': 'Transfer details not found.'}, status=status.HTTP_400_BAD_REQUEST)
+            except Transfer.DoesNotExist as e:
+                return Response({'error': f'Transfer details not found: {str(e)}'}, status=status.HTTP_404_NOT_FOUND)
             
             try:
                 assigned_emp_pm =  Employee.objects.get(id=new_pm)
                 transferred_employee_id = transfer.employee_id.id
                 transferred_employee_object = Employee.objects.get(id=transferred_employee_id)
-            except Employee.DoesNotExist:
-                return Response({'error': 'Employee not found.'}, status=status.HTTP_400_BAD_REQUEST)
+            except Employee.DoesNotExist as e:
+                return Response({'error': f'Employee not found: {str(e)}'}, status=status.HTTP_404_NOT_FOUND)
 
             transfer.newpm_id = assigned_emp_pm
             transfer.transfer_date = transfer_date
@@ -186,7 +186,7 @@ class ChangeApprovalDatePmAPIView(APIView):
             return Response({'message': 'Transfer date and pm changed successfully.'}, status=status.HTTP_200_OK)            
 
         except Exception as e:
-            return Response({'error': f'Error in changing the transfer date and pm : {e}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({'error': f'Error in changing the transfer date and pm : {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             
 
 # To list all the transfers that happened in a DU, in all statuses
@@ -202,25 +202,30 @@ class ListTransferHistoryAPIView(APIView):
         try:
             paginator = self.pagination_class()
             transfers = Transfer.objects.filter(status__in=[3,4,5]).order_by('-id')
-            paginated_results = paginator.paginate_queryset(transfers, request)
+            if transfers.exists():
+                paginated_results = paginator.paginate_queryset(transfers, request)
 
-            serializer = TransferAndEmployeeSerializerTwo(paginated_results, many=True)
+                serializer = TransferAndEmployeeSerializerTwo(paginated_results, many=True)
 
-            response_data = {
-                'count': paginator.count,
-                'next': paginator.get_next_link(),
-                'previous': paginator.get_previous_link(),
-                'results': serializer.data
-            }
+                response_data = {
+                    'count': paginator.count,
+                    'next': paginator.get_next_link(),
+                    'previous': paginator.get_previous_link(),
+                    'results': serializer.data
+                }
 
-            if response_data:
-                return Response({'data': response_data}, status=status.HTTP_200_OK)
+                logger.info(response_data)
+
+                if response_data:
+                    return Response({'data': response_data, 'message': 'Transfer history retreived successfully'}, status=status.HTTP_200_OK)
+                else:
+                    return Response({'error': 'List of transfer histories cannot be retreived.'}, status=status.HTTP_404_NOT_FOUND)
             else:
-                return Response({'error': 'Transfer history cannot be retreived.'}, status=status.HTTP_404_NOT_FOUND)
-        
+                return Response({'error': 'Transfer details does not exists.'}, status=status.HTTP_404_NOT_FOUND)
+
         except Exception as e:
             logger.error(f"Transfer History Listing API: {e}")
-            return Response({'error': f'Transfer history cannot be retreived: {e}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({'error': {str(e)}}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
 
 # To display all the pending approvals for a DU head.
@@ -245,15 +250,17 @@ class PendingApprovalsView(APIView):
                 transfer_requests = Transfer.objects.filter(status=2, targetdu_id=du_id)
             elif tab_switch_btn == 2:                                                               #internal=2
                 transfer_requests = Transfer.objects.filter(status=1, currentdu_id=du_id)
+            else:
+                return Response({"error": "Invalid transfer tab request"}, status=status.HTTP_400_BAD_REQUEST)
 
             serializer = TransferAndEmployeeSerializerTwo(transfer_requests, many=True)
             if serializer.data:
-                return Response({'data': serializer.data}, status=status.HTTP_200_OK)
+                return Response({'data': serializer.data, 'message':'Pending approvals retreived successfully.'}, status=status.HTTP_200_OK)
             else:
-                return Response({"error": f"Error in retreiving pending approvals"}, status=status.HTTP_404_NOT_FOUND)
+                return Response({"error": "Error in retrieving pending approvals"}, status=status.HTTP_404_NOT_FOUND)
 
         except Exception as e:
-            return Response({"error": f"Error in retreiving pending approvals: {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({"error": {str(e)}}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 #To retreive the number of transfers happened in all DUs to display in dashboard
@@ -267,30 +274,25 @@ class NoOfTransfersInDUsAPIView(APIView):
     def get(self,request):
         try:
             thirty_days_ago = (datetime.now() - timedelta(days=30)).date()
-            print(thirty_days_ago)
-            # thirty_days_ago_date = datetime.date(thirty_days_ago)
-            # print(thirty_days_ago_date)
-            
             du_ids = DeliveryUnit.objects.all().values_list('id', flat=True) 
             result_data=[]          
             for du_id in du_ids:
                 try:
-                    transfers_in_last_thirty_days = Transfer.objects.filter( Q(currentdu_id=du_id) | Q(targetdu_id=du_id), status__in=[3],
-                                                                        transfer_date__gte=thirty_days_ago).count()
+                    transfers_in_last_thirty_days = Transfer.objects.filter( Q(currentdu_id=du_id) | Q(targetdu_id=du_id), status = 3,
+                                                                            transfer_date__gte=thirty_days_ago).count()                     
                 except Transfer.DoesNotExist:
-                    return Response({'error': 'DU transfer details not found.'}, status=status.HTTP_400_BAD_REQUEST)
-                
+                    return Response({'error': 'DU transfer details not found.'}, status=status.HTTP_404_NOT_FOUND)
                 result_data.append ({
                                         'du_id': du_id,
                                         'no_of_transfers': transfers_in_last_thirty_days
                                     })
             if result_data:
-                return Response({'data':result_data}, status=status.HTTP_200_OK)
+                return Response({'data':result_data, 'message':'Number of transfers in all dus retrieved successfully.'}, status=status.HTTP_200_OK)
             else:
-                return Response({'error': 'Unable to retreive number of transfers in a DU'}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({'error': 'Unable to retreive number of transfers in DUs'}, status=status.HTTP_404_NOT_FOUND)
         
         except Exception as e:
-            return Response({'error':f'Error in fetching number of transfers in a DU: {e}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({'error':{str(e)}}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 ##To cancel the initiated transfer request by the duhead
@@ -382,7 +384,7 @@ class CDURequestApprovalAPIView(APIView):
             transfer_id = data.get("transfer_id")
             transfer_date = data.get("transfer_date")
 
-            if transfer_id == '':
+            if transfer_id == ' ' | transfer_date == ' ':
                 return Response({'error': 'Provide the request data correctly.'}, status=status.HTTP_400_BAD_REQUEST)
 
             try:
