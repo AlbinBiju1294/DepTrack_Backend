@@ -155,7 +155,7 @@ class ChangeApprovalDatePmAPIView(APIView):
             new_pm = data.get("newpm_id")
             transfer_date = data.get("transfer_date")
 
-            if transfer_id == ' ' | new_pm == ' ':
+            if (transfer_id == ' ' or new_pm == ' '):
                 return Response({'error': 'Provide the request data correctly.'}, status=status.HTTP_400_BAD_REQUEST)
 
             try:
@@ -238,15 +238,15 @@ class PendingApprovalsView(APIView):
                 return Response({'error': 'Provide required data.'}, status=status.HTTP_200_OK)
             
             if tab_switch_btn == 1:                                                                 #external=1                                       
-                transfer_requests = Transfer.objects.filter(status=2, target_du=du_id)
+                transfer_requests = Transfer.objects.filter(status=2, targetdu_id=du_id)
             elif tab_switch_btn == 2:                                                               #internal=2
-                transfer_requests = Transfer.objects.filter(status=1, current_du=du_id)
+                transfer_requests = Transfer.objects.filter(status=1, currentdu_id=du_id)
 
             serializer = TransferAndEmployeeSerializer(transfer_requests, many=True)
             if serializer.data:
                 return Response({'data': serializer.data}, status=status.HTTP_200_OK)
             else:
-                return Response({"error": f"Error in retreiving pending approvals: {e}"}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({"error": f"Error in retreiving pending approvals."}, status=status.HTTP_400_BAD_REQUEST)
 
         except Exception as e:
             return Response({"error": f"Error in retreiving pending approvals: {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -263,7 +263,7 @@ class NoOfTransfersInDUsAPIView(APIView):
     def get(self,request):
         try:
             thirty_days_ago = datetime.now() - timedelta(days=30)
-            du_ids = DeliveryUnit.objects.all().values_list('du_id', flat=True) 
+            du_ids = DeliveryUnit.objects.all().values_list('id', flat=True) 
             result_data=[]          
             for du_id in du_ids:
                 try:
@@ -272,14 +272,14 @@ class NoOfTransfersInDUsAPIView(APIView):
                 except Transfer.DoesNotExist:
                     return Response({'error': 'DU transfer details not found.'}, status=status.HTTP_400_BAD_REQUEST)
                 
-                result_data.append = {
+                result_data.append({
                                         'du_id': du_id,
                                         'no_of_transfers': transfers_in_last_thirty_days
-                                    }
-                if result_data:
-                    return Response({'data':result_data}, status=status.HTTP_200_OK)
-                else:
-                    return Response({'error': 'Unable to retreive number of transfers in a DU'}, status=status.HTTP_400_BAD_REQUEST)
+                                    })
+            if result_data:
+                return Response({'data':result_data}, status=status.HTTP_200_OK)
+            else:
+                return Response({'error': 'Unable to retreive number of transfers in a DU'}, status=status.HTTP_400_BAD_REQUEST)
         
         except Exception as e:
             return Response({'error':'Error in fetching number of transfers in a DU: {e}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -372,7 +372,7 @@ class CDURequestApprovalAPIView(APIView):
             transfer_id = data.get("transfer_id")
             transfer_date = data.get("transfer_date")
 
-            if transfer_id == ' ':
+            if transfer_id == ' ' | transfer_date == ' ':
                 return Response({'error': 'Provide the request data correctly.'}, status=status.HTTP_400_BAD_REQUEST)
 
             try:
