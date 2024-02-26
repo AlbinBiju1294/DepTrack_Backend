@@ -14,23 +14,30 @@ from .models import DeliveryUnit
 from .serializers import DuSerializer
 from user.rbac import IsAdmin
 
-# To add new Du 
+# To add new Du
 class DeliveryUnitCreateAPIView(APIView):
     """Allows the admin to add new Du to the delivery_unit table.
-       The Du_name is given in the body.If the entered Du already exists 
+       The Du_name is given in the body.If the entered Du already exists
        then an error message will be displayed"""
-    
+   
     permission_classes = [IsAdmin]
+    # serializer_class= DuSerializer
+ 
     def post(self, request):
         try:
+            du_name = request.data.get('du_name')
+            if not du_name :
+                return Response({"error": "du_name is required in the request body"}, status=status.HTTP_400_BAD_REQUEST)
+            if DeliveryUnit.objects.filter(du_name=du_name).exists():
+                return Response({"error": "Delivery Unit with this name already exists."}, status=status.HTTP_400_BAD_REQUEST)
+ 
             serializer = DuSerializer(data=request.data)
             if serializer.is_valid():
                 serializer.save()
                 return Response({"message":"new DU added successfully"}, status=status.HTTP_201_CREATED)
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-            res_data = {"message": " Something went wrong !", "data": {"error": str(e)}, }
-            return Response(res_data, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response( {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 #view to list all Delivery Units
@@ -45,7 +52,7 @@ class GetAllDeliveryUnits(ListAPIView):
             queryset = DeliveryUnit.objects.all()
             if  queryset.exists():
                 serializer = self.get_serializer(queryset, many=True)
-                return Response({"data": serializer.data, "Message": "Departments Listed"}, status=status.HTTP_200_OK)
+                return Response({"data": serializer.data, "message": "Departments Listed"}, status=status.HTTP_200_OK)
             else:
                 return  Response({"error": "Failed to retrieve Departments"}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
@@ -75,7 +82,7 @@ class DashboardDuDetails(APIView):
 
     def get(self, request):
         try:
-            logged_in_user_du_id = self.request.user.employee_id.du_id
+            logged_in_user_du_id = self.request.user.employee_id.du_id.id
             du_name = DeliveryUnit.objects.get(id=logged_in_user_du_id).du_name
             pms_in_du_count = Employee.objects.filter(du_id=logged_in_user_du_id, user__user_role=2).count()
             total_no_of_employees = Employee.objects.filter(du_id=logged_in_user_du_id).count()
@@ -85,12 +92,13 @@ class DashboardDuDetails(APIView):
                     'no_of_employees': total_no_of_employees}
             
             if result:
-                return Response({'result': result, 'message': 'Du details retreived successfully'}, status=status.HTTP_200_OK)
+                return Response({'data': result, 'message': 'Du details retreived successfully'}, status=status.HTTP_200_OK)
             else:
                 return Response({'error': 'Du details couldnot be retreived.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         
         except Exception as e:
+                print(e)
                 return Response({'error': 'Du details couldnot be retreived.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 

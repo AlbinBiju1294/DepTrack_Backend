@@ -25,17 +25,17 @@ class UserRegistrationView(GenericAPIView):
             serializer = self.get_serializer(data=request.data)
             if serializer.is_valid(raise_exception=True):
                 user = serializer.save()
-                res_data = {"success": True, "message": "Registration Successful, Please Login",
+                res_data = {"message": "Registration Successful, Please Login",
                             "data": {"id": user.id, "username": user.username}}
                 return Response(res_data, status=status.HTTP_201_CREATED)
             else:
                 err_data = str(serializer.errors)
-                res_data = {"success": False, "message": "Something went wrong", "data": {
+                res_data = {"message": "Something went wrong", "data": {
                     "error": err_data}}
-                return Response(res_data, status=status.HTTP_400_BAD_REQUEST)
+                return Response({"data":res_data}, status=status.HTTP_400_BAD_REQUEST)
 
         except Exception as ex:
-            res_data = {"success": False, "message": " Something went wrong !", "data": {
+            res_data = {"message": " Something went wrong !", "data": {
                 "error": str(ex)}, }
             return Response(res_data, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
