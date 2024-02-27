@@ -30,6 +30,8 @@ class CreateTransferAPIView(APIView):
             current_du_id = request.data.get('currentdu_id')
             target_du_id = request.data.get('targetdu_id')
             employee_id = request.data.get('employee_id')
+            initiated_by = request.user.employee_id.id
+            request.data['initiated_by'] = initiated_by
 
             if current_du_id == target_du_id and current_du_id != None and target_du_id != None:
                 return Response({'error': 'Current and target DU cannot be the same.'}, status=status.HTTP_400_BAD_REQUEST)
@@ -57,14 +59,14 @@ class CreateTransferAPIView(APIView):
 
 # view to get the whole details of the transfer by passing transfer id
 class GetTransferDetailsAPIView(APIView):
-    permission_classes = [IsPm | IsDuhead]
+    permission_classes = [IsPm | IsDuhead | IsAdmin]
     """transfer id is extracted from the request body. Then the transfer instance is 
     obtained using the transfer id. Then the transfer details along with employee details
     is returned"""
 
     def get(self, request):
         try:
-            transfer_id = request.data.get('transfer_id')
+            transfer_id = request.query_params.get('transfer_id')
             if (transfer_id == ''):
                 return Response({"error": "transfer id shouldn't be null"},status=status.HTTP_400_BAD_REQUEST)
             transfer = Transfer.objects.get(id=transfer_id)
@@ -81,14 +83,15 @@ class GetTransferDetailsAPIView(APIView):
 
 # filters the transfers based on the given query parameters
 class FilterTransfersAPIView(APIView):
-    permission_classes = [IsPm | IsDuhead | IsHrbp | IsAdmin]
     """Query params are taken into a variable filter_params and based on those parameters 
     details are fetched from transfer table and the filtered content is returned as
     response"""
 
+    permission_classes = [IsPm | IsDuhead | IsHrbp | IsAdmin]
+    pagination_class = LimitOffsetPagination
     def get(self, request):
         try:
-            filter_params = request.data
+            filter_params = request.query_params
             query_set = Transfer.objects.all()
             for key, value in filter_params.items():
                 if key == 'employee_name':
@@ -106,9 +109,11 @@ class FilterTransfersAPIView(APIView):
                     transfer_date__range=(start_date, end_date))
 
             if query_set:
+                paginator = LimitOffsetPagination()
+                paginated_queryset = paginator.paginate_queryset(query_set, request)
                 serializer = TransferAndEmployeeSerializerTwo(
-                    query_set, many=True)
-                return Response({"data": serializer.data, "message": "filtered successfully"}, status=status.HTTP_200_OK)
+                    paginated_queryset, many=True)
+                return paginator.get_paginated_response(serializer.data)
             return Response({"error": "Transfers not found"}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             print(e)
@@ -125,7 +130,7 @@ class GetInitiatedRequestsApiView(APIView):
 
     def get(self, request):
         try:
-            du_id = request.data.get('du_id')
+            du_id = request.query_params.get('du_id')
             query_set = Transfer.objects.filter(
                 Q(currentdu_id=du_id) & (Q(status=1) | Q(status=2)))
             logger.info(query_set)
@@ -304,7 +309,8 @@ class CancelTransfer(APIView):
                 return Response({"error": "transfer_id is required in the request body"}, status=status.HTTP_400_BAD_REQUEST)
             logged_in_duhead_du = self.request.user.employee_id.du_id.id
             transfer_instance = Transfer.objects.get(id=transfer_id)
-            if transfer_instance.currentdu_id_id == logged_in_duhead_du:
+            if transfer_instance.currentdu_id.id == logged_in_duhead_du:
+                print(type(transfer_instance.currentdu_id.id))
                 transfer_instance.status = 5
                 transfer_instance.save()
                 return Response({"message": "Transfer status changed to cancel"}, status=status.HTTP_200_OK)

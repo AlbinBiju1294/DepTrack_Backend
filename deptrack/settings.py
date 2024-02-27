@@ -211,33 +211,32 @@ LOGGING = {
         'access': {
             'level': 'INFO',
             'class': 'logging.FileHandler',
-            'filename': os.path.join(BASE_DIR, 'access.log'),
+            'filename': os.path.join(BASE_DIR, 'logger.log'),
             'formatter': 'verbose'
         },
         'error': {
             'level': 'ERROR',
             'class': 'logging.FileHandler',
-            'filename': os.path.join(BASE_DIR, 'error.log'),
+            'filename': os.path.join(BASE_DIR, 'logger.log'),
             'formatter': 'verbose'
         },
         'debug': {
             'level': 'DEBUG',
             'class': 'logging.FileHandler',
-            'filename': os.path.join(BASE_DIR, 'debug.log'),
+            'filename': os.path.join(BASE_DIR, 'logger.log'),
             'formatter': 'verbose'
-        },
-        'console': {
-            'level': 'DEBUG',
-            'class': 'logging.StreamHandler',
-            'formatter': 'verbose',
-            'stream': sys.stdout
         }
     },
     'loggers': {
+        'django.utils.autoreload': {  # Exclude auto-reload messages
+            'handlers': [],  # No handlers for auto-reload messages
+            'propagate': False,
+        },
         '': {  # Root logger, captures all logs
-            'handlers': ['access', 'error', 'debug', 'console'],
+            'handlers': ['access', 'error', 'debug'],
             'level': 'DEBUG',
         },
     }
 }
+
 
