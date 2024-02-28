@@ -106,7 +106,7 @@ class EmployeeSearchListView(generics.ListAPIView):
                 serializer = self.get_serializer(queryset, many=True)
                 return Response({"data": serializer.data, "message": "Employees Listed"}, status=status.HTTP_200_OK)
             else:
-                return  Response({"error": "No on matching search"}, status=status.HTTP_404_NOT_FOUND)
+                return  Response({"data":[], "error": "No one matching search"}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             return Response({"error": "Internal Error"+str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -125,7 +125,7 @@ class DuHeadAndDuList(ListAPIView):
                 serializer = self.get_serializer(queryset, many=True)
                 return Response({"data": serializer.data, "message": "DU heads Listed Successfully"}, status=status.HTTP_200_OK)
             else:
-                return  Response({"error": "No DU heads"}, status=status.HTTP_404_NOT_FOUND)
+                return  Response({"data":[] , "error": "No DU heads"}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             return Response({"error": "Internal Error","error":str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -155,7 +155,4 @@ class UpdateDUHeadAPIView(APIView):
         
         except Exception as e:
             return Response({'error': 'DU head cannot be updated due to error: {e}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
-
 
