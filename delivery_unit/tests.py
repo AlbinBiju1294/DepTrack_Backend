@@ -26,7 +26,7 @@ class DashboardDuDetailsTestCase(TestCase):
         self.token = AccessToken.for_user(self.user)
         self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {self.token}')
 
-    @patch('dashboard.views.logger.error')                              # Mock logger.error to prevent actual logging
+    @patch('delivery_unit.views.logger.error')                              # Mock logger.error to prevent actual logging
     def test_get_dashboard_details(self, mock_logger_error):
         url = reverse('dashboard-du-details')
         
