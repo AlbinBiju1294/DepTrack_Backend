@@ -1,5 +1,6 @@
 from django.shortcuts import render
-from .models import Employee
+from .models import *
+from delivery_unit.models import *
 from .serializers import EmployeeSerializer, DeliveryUnitMappingSerializer
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework import generics, status, permissions
@@ -10,6 +11,9 @@ from rest_framework.generics import ListAPIView, ListCreateAPIView
 from rest_framework.views import APIView
 from rest_framework import generics, status, permissions
 from user.rbac import *
+from .forms import *
+import pandas as pd
+from user.models import *
 
 # for pm listing
 from rest_framework.response import Response
@@ -156,3 +160,39 @@ class UpdateDUHeadAPIView(APIView):
         except Exception as e:
             return Response({'error': 'DU head cannot be updated due to error: {e}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
+
+#view to process xl uploads 
+class EmployeeUpdate(APIView):
+    """Api endpoint to update Employee table from the uploaded xlsx file if employee is present updates department and designation 
+    otherwise creates new employee instance  """
+
+    permission_classes=(IsAdmin,)
+    
+    def post(self, request):
+        try:
+            form = ExcelUploadForm(request.POST, request.FILES)
+            if form.is_valid():
+                excel_file = request.FILES['file']
+                df = pd.read_excel(excel_file) 
+                for index, row in df.iterrows():
+                    for column_name, cell_value in row.items():
+                        if column_name.lower()=="email":
+                            employee=Employee.objects.filter( mail_id=cell_value.strip()).first()
+                            if(employee):
+                                new_du_id=df.at[index, 'department-id']
+                                new_designation=df.at[index, 'designation']
+                                delivery_unit_instance= DeliveryUnit.objects.get(id=new_du_id)
+                                employee.du_id=delivery_unit_instance
+                                employee.designation=new_designation
+                                employee.save()
+                            else:
+                                delivery_unit_instance= DeliveryUnit.objects.get(id=new_du_id)
+                                new_employee = Employee(employee_number=df.at[index,'employee-number'],name=df.at[index,'employee-name'], mail_id=df.at[index,'email'],designation=df.at[index,'designation'],du_id=delivery_unit_instance,profile_pic_path=df.at[index,'profile-pic'])
+                                new_employee.save()
+                            
+                return Response({'message': 'upload successful'}, status=status.HTTP_200_OK)
+            else:
+                return Response({'error':'upload failed'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except Exception as ex:
+            return Response({'error':str(ex)},status=status.HTTP_500_INTERNAL_SERVER_ERROR)
