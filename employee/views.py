@@ -61,31 +61,37 @@ class EmployeeListCreateView(ListCreateAPIView):
 class BandListView(ListCreateAPIView):
     """Extract the band levels from the band_level list so that the
       required band level can be selected by the DU or PM while filling form"""
-
+    permission_classes=[IsDuhead|IsPm]
     def get(self, request):
         band_level = [("A1", "LEVEL1"), ("A2", "LEVEL2"),
                       ("B1", "LEVEL3"), ("B2", "LEVEL4"), ("C1", "LEVEL5")]
         band_levels = [band[0] for band in band_level]  
-        return Response({"band_levels": band_levels})
+        return Response({"message": "Band levels retrieved successfully", "band_levels": band_levels}, status=status.HTTP_200_OK)    
+    def post(self, request):
+        return Response({"message":"Method \"POST\" not allowed."},status=status.HTTP_400_BAD_REQUEST)
 
 
 # To list the new PM names in the C-DU
 class PMListView(generics.ListAPIView):
-    """Lists the names and id of the PMs in the du so that the du head can select one Pm 
-      from this list for assigning to the new employee once the incoming transfer request 
+    """Lists the names and id of the PMs in the du so that the du head can select one Pm
+      from this list for assigning to the new employee once the incoming transfer request
       is accepted.User objects are filtered for the condition user_role=2"""
     serializer_class = PmSerializer
     permission_classes = [IsDuhead]
-
-    def get_queryset(self):
+    pagination_class=None
+    def get(self,request):
         try:
-            logged_in_duhead_du = self.request.user.employee_id.du
-            pm_users = User.objects.filter(
-                user_role=2, employee_id__du=logged_in_duhead_du)
-            return pm_users
+            logged_in_duhead_du = self.request.user.employee_id.du_id
+            pm_users = User.objects.filter(user_role=2, employee_id__du_id=logged_in_duhead_du)
+            if not pm_users:
+                return Response({"message": "No Project Managers available "}, status=status.HTTP_404_NOT_FOUND)
+           
+            serializer = self.get_serializer(pm_users, many=True)
+            return Response({ "message":"PM listing successful","data":serializer.data}, status=status.HTTP_200_OK)
+ 
         except Exception as ex:
             print(ex)
-            return Response({"message":"Something went wrong"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({"data": {"error": str(ex)}}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 
@@ -151,6 +157,7 @@ class UpdateDUHeadAPIView(APIView):
                 du_head_emp_id = Employee.objects.get(id=new_du_head_id).id
                 du_mapping_obj = DeliveryUnitMapping.objects.get(du_id=du_id)
             except Exception as e:
+                print(e)
                 return Response({'error': 'Error in retreiving employee and delivery unit mapping objects'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             
             du_mapping_obj.du_head_id = du_head_emp_id
@@ -158,6 +165,7 @@ class UpdateDUHeadAPIView(APIView):
             return Response({'message': 'DU head updated successfully'}, status=status.HTTP_200_OK)
         
         except Exception as e:
+            print(e)
             return Response({'error': 'DU head cannot be updated due to error: {e}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 

@@ -10,6 +10,9 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.generics import UpdateAPIView, RetrieveUpdateAPIView, ListAPIView, GenericAPIView,RetrieveUpdateDestroyAPIView
 from .rbac import IsDuhead, IsAdmin, IsHrbp, IsPm, IsUser
+import logging
+
+logger = logging.getLogger("django")
 
 # Create your views here.
 
@@ -23,19 +26,26 @@ class UserRegistrationView(GenericAPIView):
     def post(self, request):
         try:
             serializer = self.get_serializer(data=request.data)
-            if serializer.is_valid(raise_exception=True):
+            if serializer.is_valid():
                 user = serializer.save()
-                res_data = {"success": True, "message": "Registration Successful, Please Login",
+                res_data = {"message": "Registration Successful, Please Login",
                             "data": {"id": user.id, "username": user.username}}
                 return Response(res_data, status=status.HTTP_201_CREATED)
             else:
-                err_data = str(serializer.errors)
-                res_data = {"success": False, "message": "Something went wrong", "data": {
-                    "error": err_data}}
+                err_data = serializer.errors
+                email_error = err_data.get('email', [])
+                username_error = err_data.get('username', [])
+                error_message = ''
+                if email_error:
+                    error_message = email_error[0]
+                if username_error:
+                    error_message = error_message+" "+username_error[0]
+                logger.error(error_message)
+                res_data = {"message": error_message}
                 return Response(res_data, status=status.HTTP_400_BAD_REQUEST)
-
         except Exception as ex:
-            res_data = {"success": False, "message": " Something went wrong !", "data": {
+            logger.error(ex, "on adding", request.data.username)
+            res_data = {"message": " Something went wrong !", "data": {
                 "error": str(ex)}, }
             return Response(res_data, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -44,7 +54,7 @@ class UserRegistrationView(GenericAPIView):
 class UserListView(ListAPIView):
     """View gives list of all users in the User table to Admin level users """
     
-    permission_classes = (IsAdmin,)
+    permission_classes = (IsAdmin,)         
     serializer_class =  UserProfileSerializer
     def list(self, request, *args, **kwargs):
         try:
