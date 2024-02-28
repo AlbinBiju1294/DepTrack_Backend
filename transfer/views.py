@@ -357,7 +357,10 @@ class TargetDURejectAPIView(APIView):
             transfer_id = data.get("transfer_id")
             rejection_reason=data.get("rejection_reason")
             if transfer_id and rejection_reason:
-                 transfer = Transfer.objects.get(id=transfer_id)
+                 try:
+                    transfer = Transfer.objects.get(id=transfer_id)
+                 except  Transfer.DoesNotExist:
+                    return Response({'error': 'Transfer does not exist'}, status=status.HTTP_400_BAD_REQUEST)
                  transfer.status = 4
                  transfer.rejection_reason=rejection_reason
                  transfer.save()
