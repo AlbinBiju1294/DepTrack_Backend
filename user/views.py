@@ -63,7 +63,7 @@ class UserListView(ListAPIView):
                 serializer = self.get_serializer(queryset, many=True)
                 return Response({"data": serializer.data, "message": "Users Listed Successfully"}, status=status.HTTP_200_OK)
             else:
-                return  Response({"error": "Failed to retrieve Users"}, status=status.HTTP_404_NOT_FOUND)
+                return  Response({"data":[],"error": "Failed to retrieve Users"}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             return Response({"error": "Internal Error","error":str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
