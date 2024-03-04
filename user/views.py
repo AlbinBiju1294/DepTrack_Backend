@@ -86,6 +86,7 @@ class SingleUserView(APIView):
             else:
                 return Response({"error":"User not found"},status.HTTP_404_NOT_FOUND)
         except Exception as e:
+            print(e)
             return Response({"error":str(e)},status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         
