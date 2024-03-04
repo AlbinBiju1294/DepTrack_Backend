@@ -35,24 +35,8 @@ class TransferAndDetailsSerializer(serializers.ModelSerializer):
         except Exception as ex:
             return None
 
+        
 class TransferAndEmployeeSerializer(serializers.ModelSerializer):
-    employee = serializers.SerializerMethodField()
-
-    class Meta:
-        model = Transfer
-        fields = ["id","employee", "currentdu_id", "targetdu_id", "status", "transfer_date"]
-
-    def get_employee(self, obj):
-        try:
-            if obj.employee:
-                employee_serializer = EmployeeNestedSerializer(obj.employee)
-                return employee_serializer.data
-            return None
-        
-        except Exception as ex:
-            return None
-        
-class TransferAndEmployeeSerializerTwo(serializers.ModelSerializer):
     employee = serializers.SerializerMethodField()
     currentdu = serializers.SerializerMethodField()
     targetdu = serializers.SerializerMethodField()

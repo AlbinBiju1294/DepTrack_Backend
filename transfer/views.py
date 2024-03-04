@@ -9,7 +9,7 @@ from rest_framework.permissions import IsAuthenticated
 from .models import Transfer, TransferDetails
 from employee.models import Employee, DeliveryUnitMapping
 from delivery_unit.models import DeliveryUnit
-from .serializers import TransferSerializer, TransferDetailsSerializer, TransferAndDetailsSerializer, TransferAndEmployeeSerializer, TransferAndEmployeeSerializerTwo
+from .serializers import TransferSerializer, TransferDetailsSerializer, TransferAndDetailsSerializer, TransferAndEmployeeSerializer
 from user.rbac import *
 from rest_framework.pagination import LimitOffsetPagination
 import logging
@@ -113,7 +113,7 @@ class FilterTransfersAPIView(APIView):
             if query_set:
                 paginator = LimitOffsetPagination()
                 paginated_queryset = paginator.paginate_queryset(query_set, request)
-                serializer = TransferAndEmployeeSerializerTwo(
+                serializer = TransferAndEmployeeSerializer(
                     paginated_queryset, many=True)
                 return paginator.get_paginated_response(serializer.data)
             return Response({"error": "Transfers not found"}, status=status.HTTP_404_NOT_FOUND)
@@ -137,7 +137,7 @@ class GetInitiatedRequestsApiView(APIView):
                 Q(currentdu_id=du_id) & (Q(status=1) | Q(status=2)))
             logger.info(query_set)
             if query_set:
-                serializer = TransferAndEmployeeSerializerTwo(
+                serializer = TransferAndEmployeeSerializer(
                     query_set, many=True)
                 return Response({"data": serializer.data,"message":"Initiated requests retreived successfully"}, status=status.HTTP_200_OK)
             return Response({"message": "Transfer details not found"}, status=status.HTTP_404_NOT_FOUND)
@@ -218,7 +218,7 @@ class ListTransferHistoryAPIView(APIView):
             if transfers.exists():
                 paginated_results = paginator.paginate_queryset(transfers, request)
 
-                serializer = TransferAndEmployeeSerializerTwo(paginated_results, many=True)
+                serializer = TransferAndEmployeeSerializer(paginated_results, many=True)
 
                 response_data = {
                     'count': paginator.count,
@@ -267,7 +267,7 @@ class PendingApprovalsView(APIView):
             else:
                 return Response({"error": "Invalid transfer tab request"}, status=status.HTTP_400_BAD_REQUEST)
 
-            serializer = TransferAndEmployeeSerializerTwo(transfer_requests, many=True)
+            serializer = TransferAndEmployeeSerializer(transfer_requests, many=True)
             if serializer.data:
                 return Response({'data': serializer.data, 'message':'Pending approvals retreived successfully.'}, status=status.HTTP_200_OK)
             else:
