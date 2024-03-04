@@ -13,6 +13,8 @@ from .serializers import TransferSerializer, TransferDetailsSerializer, Transfer
 from user.rbac import *
 from rest_framework.pagination import LimitOffsetPagination
 import logging
+from django.core.mail import send_mail
+from django.conf import settings
 
 logger = logging.getLogger("django")
 
@@ -183,11 +185,22 @@ class ChangeApprovalDatePmAPIView(APIView):
             transferred_employee_object.du_id = transfer.targetdu_id
             transferred_employee_object.save()
 
-            return Response({'message': 'Transfer date and pm changed successfully.'}, status=status.HTTP_200_OK)            
-
+            # Prepare email parameters
+            email_data = {
+                'subject': 'Transfer Date and PM Changed',
+                'message': f'Transfer ID: {transfer_id}\nNew PM ID: {new_pm}\nTransfer Date: {transfer_date}',
+                'recipient_email':[ 'jittytresa@gmail.com', 'jittytresathomas@gmail.com']  
+            }
+            email_api = EmailAPI()
+            response = email_api.post(request=request, subject=email_data['subject'], message=email_data['message'], recipient_email=email_data['recipient_email'])
+            if response.status_code == status.HTTP_200_OK:
+                return Response({'message': 'Transfer date and PM changed successfully. Email sent successfully'}, status=status.HTTP_200_OK)
+            else:
+                return Response({'error': 'Failed to send email notification'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         except Exception as e:
-            return Response({'error': f'Error in changing the transfer date and pm : {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-            
+            return Response({'error': f'Error in changing the transfer date and PM: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        
 
 # To list all the transfers that happened in a DU, in all statuses
 class ListTransferHistoryAPIView(APIView):
@@ -195,7 +208,7 @@ class ListTransferHistoryAPIView(APIView):
     Lists all the transfers that happened in a DU, both incoming and outgoing transfers. It takes details 
     from both the transfer table and employee table.
     """
-    permission_classes = [IsAuthenticated, IsDuhead | IsPm | IsHrbp]
+    permission_classes = [IsAdmin | IsDuhead | IsPm | IsHrbp]
     pagination_class = LimitOffsetPagination
 
     def get(self, request):
@@ -213,8 +226,9 @@ class ListTransferHistoryAPIView(APIView):
                     'previous': paginator.get_previous_link(),
                     'results': serializer.data
                 }
+                print(response_data['results'])
 
-                logger.info(response_data)
+                # logger.info(response_data)
 
                 if response_data:
                     return Response({'data': response_data, 'message': 'Transfer history retreived successfully'}, status=status.HTTP_200_OK)
@@ -239,7 +253,7 @@ class PendingApprovalsView(APIView):
 
     def get(self, request):
         try:
-            data = request.data
+            data = request.query_params
             du_id = data.get("du_id")
             tab_switch_btn = data.get('tab_switch_btn')
 
@@ -274,16 +288,16 @@ class NoOfTransfersInDUsAPIView(APIView):
     def get(self,request):
         try:
             thirty_days_ago = (datetime.now() - timedelta(days=30)).date()
-            du_ids = DeliveryUnit.objects.all().values_list('id', flat=True) 
+            dus = DeliveryUnit.objects.all()
             result_data=[]          
-            for du_id in du_ids:
+            for du in dus:
                 try:
-                    transfers_in_last_thirty_days = Transfer.objects.filter( Q(currentdu_id=du_id) | Q(targetdu_id=du_id), status = 3,
+                    transfers_in_last_thirty_days = Transfer.objects.filter( Q(currentdu_id=du.id) | Q(targetdu_id=du.id), status = 3,
                                                                             transfer_date__gte=thirty_days_ago).count()                     
                 except Transfer.DoesNotExist:
                     return Response({'error': 'DU transfer details not found.'}, status=status.HTTP_404_NOT_FOUND)
                 result_data.append ({
-                                        'du_id': du_id,
+                                        'du_name': du.du_name,
                                         'no_of_transfers': transfers_in_last_thirty_days
                                     })
             if result_data:
@@ -327,15 +341,15 @@ class TransferStatusCountAPIView(APIView):
     """ Allows the DU head to get the number of transfers intiated ,
         completed,rejected and cancelled in his du"""
    
-    permission_classes = [IsDuhead]
+    permission_classes = [IsDuhead | IsAdmin]
     def get(self, request):
         try:
             logged_in_duhead_du = self.request.user.employee_id.du_id.id
             transfer_count = {
-                "Transfer initiated": Transfer.objects.filter(currentdu_id=logged_in_duhead_du, status__in=[1, 2]).count(),
-                "Transfer completed": Transfer.objects.filter(currentdu_id=logged_in_duhead_du,status=3).count(),
-                "Transfer rejected": Transfer.objects.filter(currentdu_id=logged_in_duhead_du,status=4).count(),
-                "Transfer cancelled": Transfer.objects.filter(currentdu_id=logged_in_duhead_du,status=5).count(),
+                "Transfer Initiated": Transfer.objects.filter(currentdu_id=logged_in_duhead_du, status__in=[1, 2]).count(),
+                "Transfer Completed": Transfer.objects.filter(currentdu_id=logged_in_duhead_du,status=3).count(),
+                "Transfer Rejected": Transfer.objects.filter(currentdu_id=logged_in_duhead_du,status=4).count(),
+                "Transfer Cancelled": Transfer.objects.filter(currentdu_id=logged_in_duhead_du,status=5).count(),
             }
             return Response({"message":"transfer count display successful","data":transfer_count}, status=status.HTTP_200_OK)
         except Exception as e:
@@ -401,4 +415,22 @@ class CDURequestApprovalAPIView(APIView):
         except Exception as e:
             logger.info(e)
             return Response({'error': f'Error in approving transfer request by current DU head : {e}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-            
+
+
+#EMAIL
+from django.core.mail import send_mail
+from django.conf import settings
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from rest_framework import status
+
+class EmailAPI(APIView):
+    def post(self, request, subject, message, recipient_email):
+        try:
+            if not subject or not message or not recipient_email:
+                return Response({'error': 'Provide all required email data.'}, status=status.HTTP_400_BAD_REQUEST)
+
+            send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, recipient_email)
+            return Response({'message': 'Email sent successfully'}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'error': f'Error sending email: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
