@@ -261,8 +261,8 @@ class PendingApprovalsView(APIView):
     def get(self, request):
         try:
             data = request.query_params
-            du_id = data.get("du_id")
-            tab_switch_btn = data.get('tab_switch_btn')
+            du_id = int(data.get("du_id"))
+            tab_switch_btn = int(data.get('tab_switch_btn'))
 
             if du_id == ' ' or tab_switch_btn == ' ':
                 return Response({'error': 'Provide required data.'}, status=status.HTTP_200_OK)
