@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     'delivery_unit',
     'user',
     'transfer',
+    'corsheaders',
 ]
 
 MIDDLEWARE = [
@@ -60,6 +61,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
+    
 ]
 
 ROOT_URLCONF = 'deptrack.urls'
@@ -238,5 +241,10 @@ LOGGING = {
         },
     }
 }
+
+
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+]
 
 

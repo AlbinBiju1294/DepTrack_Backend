@@ -70,15 +70,22 @@ class UserListView(ListAPIView):
 
 
   
-
-
-
-
-# #Api endpoint to get a single user
-# class UserDetailsAPIView(RetrieveUpdateDestroyAPIView):
-#     """ View gives details of a single user by primary key , 
-#     and enables other  operations like  update user details, delete user details etc """
-
-#     permission_classes = (IsAdmin,)
-#     serializer_class = UserProfileSerializer
-#     queryset = User.objects.filter(is_deleted=False).order_by('-id')
+class SingleUserView(APIView):
+    """View gives list of all users in the User table to Admin level users """
+   
+    permission_classes = [IsAuthenticated]
+ 
+    def get(self, request):
+        try:
+            user = request.user
+            if user:
+                return Response({'data':{
+                    'id':user.id,
+                    'username': user.username,
+                    'email': user.email,
+                    'role':user.user_role
+                }},status.HTTP_200_OK)
+            else:
+                return Response({"error":"User not found"},status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({"error":str(e)},status.HTTP_500_INTERNAL_SERVER_ERROR)
