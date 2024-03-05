@@ -64,7 +64,7 @@ class GetTransferDetailsAPIView(APIView):
 
     def get(self, request):
         try:
-            transfer_id = request.data.get('transfer_id')
+            transfer_id = request.query_params.get('transfer_id')
             if (transfer_id == ''):
                 return Response({"error": "transfer id shouldn't be null"},status=status.HTTP_400_BAD_REQUEST)
             transfer = Transfer.objects.get(id=transfer_id)
