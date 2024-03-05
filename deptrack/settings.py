@@ -16,6 +16,7 @@ import os
 import sys
 from datetime import timedelta
 
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -61,11 +62,23 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'corsheaders.middleware.CorsMiddleware',
-    
+     "corsheaders.middleware.CorsMiddleware",
+  
+
 ]
 
 ROOT_URLCONF = 'deptrack.urls'
+
+CORS_ORIGIN_ALLOW_ALL = True
+
+CORS_ALLOW_METHODS = (
+    "DELETE",
+    "GET",
+    "OPTIONS",
+    "PATCH",
+    "POST",
+    "PUT",
+)
 
 TEMPLATES = [
     {
@@ -99,6 +112,14 @@ DATABASES = {
         'PORT':config('DB_PORT'),
     }
 }
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL')
+EMAIL_HOST = config('EMAIL_HOST')
+EMAIL_HOST_USER = config('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
 
 
 # Password validation
@@ -150,7 +171,7 @@ REST_FRAMEWORK = {
         'rest_framework_simplejwt.authentication.JWTAuthentication', 
     ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
-    'PAGE_SIZE': 100,
+    'PAGE_SIZE': 8,
     
 }
 
@@ -201,50 +222,45 @@ SIMPLE_JWT = {
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
-LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'formatters': {
-        'verbose': {
-            'format': '%(asctime)s %(levelname)s %(name)s %(message)s',
-            'datefmt': "%d/%b/%Y %H:%M:%S"
-        },
-    },
-    'handlers': {
-        'access': {
-            'level': 'INFO',
-            'class': 'logging.FileHandler',
-            'filename': os.path.join(BASE_DIR, 'logger.log'),
-            'formatter': 'verbose'
-        },
-        'error': {
-            'level': 'ERROR',
-            'class': 'logging.FileHandler',
-            'filename': os.path.join(BASE_DIR, 'logger.log'),
-            'formatter': 'verbose'
-        },
-        'debug': {
-            'level': 'DEBUG',
-            'class': 'logging.FileHandler',
-            'filename': os.path.join(BASE_DIR, 'logger.log'),
-            'formatter': 'verbose'
-        }
-    },
-    'loggers': {
-        'django.utils.autoreload': {  # Exclude auto-reload messages
-            'handlers': [],  # No handlers for auto-reload messages
-            'propagate': False,
-        },
-        '': {  # Root logger, captures all logs
-            'handlers': ['access', 'error', 'debug'],
-            'level': 'DEBUG',
-        },
-    }
-}
-
-
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-]
+# LOGGING = {
+#     'version': 1,
+#     'disable_existing_loggers': False,
+#     'formatters': {
+#         'verbose': {
+#             'format': '%(asctime)s %(levelname)s %(name)s %(message)s',
+#             'datefmt': "%d/%b/%Y %H:%M:%S"
+#         },
+#     },
+#     'handlers': {
+#         'access': {
+#             'level': 'INFO',
+#             'class': 'logging.FileHandler',
+#             'filename': os.path.join(BASE_DIR, 'logger.log'),
+#             'formatter': 'verbose'
+#         },
+#         'error': {
+#             'level': 'ERROR',
+#             'class': 'logging.FileHandler',
+#             'filename': os.path.join(BASE_DIR, 'logger.log'),
+#             'formatter': 'verbose'
+#         },
+#         'debug': {
+#             'level': 'DEBUG',
+#             'class': 'logging.FileHandler',
+#             'filename': os.path.join(BASE_DIR, 'logger.log'),
+#             'formatter': 'verbose'
+#         }
+#     },
+#     'loggers': {
+#         'django.utils.autoreload': {  # Exclude auto-reload messages
+#             'handlers': [],  # No handlers for auto-reload messages
+#             'propagate': False,
+#         },
+#         '': {  # Root logger, captures all logs
+#             'handlers': ['access', 'error', 'debug'],
+#             'level': 'DEBUG',
+#         },
+#     }
+# }
 
 

@@ -108,7 +108,7 @@ class EmployeeSearchListView(generics.ListAPIView):
     def list(self, request, *args, **kwargs):
         try:
             logged_in_user_department_id = self.request.user.employee_id.du_id.id
-            name = self.request.data.get('name')
+            name = self.request.query_params.get('name')
             if name is None or name =="":
                  return Response({'error': 'Name parameter is required.'}, status=status.HTTP_400_BAD_REQUEST)
             queryset = Employee.objects.filter(du_id=logged_in_user_department_id, name__icontains=name)
