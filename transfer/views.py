@@ -16,6 +16,7 @@ import logging
 from django.core.mail import send_mail
 from django.conf import settings
 
+
 logger = logging.getLogger("django")
 
 
@@ -34,6 +35,8 @@ class CreateTransferAPIView(APIView):
             employee_id = request.data.get('employee_id')
             initiated_by = request.user.employee_id.id
             request.data['initiated_by'] = initiated_by
+            request.data['total_experience'] = int(request.data['total_experience'])
+            request.data['experion_experience'] = int(request.data['experion_experience'])
 
             if current_du_id == target_du_id and current_du_id != None and target_du_id != None:
                 return Response({'error': 'Current and target DU cannot be the same.'}, status=status.HTTP_400_BAD_REQUEST)
@@ -46,16 +49,20 @@ class CreateTransferAPIView(APIView):
             if transfer_serializer.is_valid():
                 transfer = transfer_serializer.save()
                 request.data['transfer_id'] = transfer.id
+                print(request.data)
                 transfer_detail_serializer = TransferDetailsSerializer(
                     data=request.data)
                 if transfer_detail_serializer.is_valid():
                     transfer_detail_serializer.save()
                     return Response({'message': 'Transfer created successfully.'}, status=status.HTTP_201_CREATED)
                 else:
+                    print(transfer_detail_serializer.errors)
                     return Response({'error': transfer_detail_serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
             else:
+                print(transfer_serializer.errors)
                 return Response({"error": transfer_serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
-        except:
+        except Exception as e:
+            print(e)
             return Response({"error": "Something went wrong"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
@@ -280,11 +287,11 @@ class PendingApprovalsView(APIView):
 #To retreive the number of transfers happened in all DUs to display in dashboard
 class NoOfTransfersInDUsAPIView(APIView):
     """
-    It is for the dashboard to be displayed as a bar-graph. It retreives the number of transfers happened 
+    It is for the dashboard to be displayed as a bar-graph. It retreives the number of transfers happened
     in th last 30 days in each DU.
     """
     permission_classes = [IsDuhead | IsHrbp | IsPm | IsAdmin]
-
+ 
     def get(self,request):
         try:
             thirty_days_ago = (datetime.now() - timedelta(days=30)).date()
@@ -304,7 +311,7 @@ class NoOfTransfersInDUsAPIView(APIView):
                 return Response({'data':result_data, 'message':'Number of transfers in all dus retrieved successfully.'}, status=status.HTTP_200_OK)
             else:
                 return Response({'error': 'Unable to retreive number of transfers in DUs'}, status=status.HTTP_404_NOT_FOUND)
-        
+       
         except Exception as e:
             return Response({'error':{str(e)}}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -353,6 +360,7 @@ class TransferStatusCountAPIView(APIView):
             }
             return Response({"message":"transfer count display successful","data":transfer_count}, status=status.HTTP_200_OK)
         except Exception as e:
+            print(e)
             return Response({ "error":str(e) }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
 
@@ -371,7 +379,10 @@ class TargetDURejectAPIView(APIView):
             transfer_id = data.get("transfer_id")
             rejection_reason=data.get("rejection_reason")
             if transfer_id and rejection_reason:
-                 transfer = Transfer.objects.get(id=transfer_id)
+                 try:
+                    transfer = Transfer.objects.get(id=transfer_id)
+                 except  Transfer.DoesNotExist:
+                    return Response({'error': 'Transfer does not exist'}, status=status.HTTP_400_BAD_REQUEST)
                  transfer.status = 4
                  transfer.rejection_reason=rejection_reason
                  transfer.save()
@@ -416,13 +427,8 @@ class CDURequestApprovalAPIView(APIView):
             logger.info(e)
             return Response({'error': f'Error in approving transfer request by current DU head : {e}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-
 #EMAIL
-from django.core.mail import send_mail
-from django.conf import settings
-from rest_framework.response import Response
-from rest_framework.views import APIView
-from rest_framework import status
+
 
 class EmailAPI(APIView):
     def post(self, request, subject, message, recipient_email):
@@ -434,3 +440,4 @@ class EmailAPI(APIView):
             return Response({'message': 'Email sent successfully'}, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({'error': f'Error sending email: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            

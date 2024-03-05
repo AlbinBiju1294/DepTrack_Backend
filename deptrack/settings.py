@@ -222,45 +222,45 @@ SIMPLE_JWT = {
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
-LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'formatters': {
-        'verbose': {
-            'format': '%(asctime)s %(levelname)s %(name)s %(message)s',
-            'datefmt': "%d/%b/%Y %H:%M:%S"
-        },
-    },
-    'handlers': {
-        'access': {
-            'level': 'INFO',
-            'class': 'logging.FileHandler',
-            'filename': os.path.join(BASE_DIR, 'logger.log'),
-            'formatter': 'verbose'
-        },
-        'error': {
-            'level': 'ERROR',
-            'class': 'logging.FileHandler',
-            'filename': os.path.join(BASE_DIR, 'logger.log'),
-            'formatter': 'verbose'
-        },
-        'debug': {
-            'level': 'DEBUG',
-            'class': 'logging.FileHandler',
-            'filename': os.path.join(BASE_DIR, 'logger.log'),
-            'formatter': 'verbose'
-        }
-    },
-    'loggers': {
-        'django.utils.autoreload': {  # Exclude auto-reload messages
-            'handlers': [],  # No handlers for auto-reload messages
-            'propagate': False,
-        },
-        '': {  # Root logger, captures all logs
-            'handlers': ['access', 'error', 'debug'],
-            'level': 'DEBUG',
-        },
-    }
-}
+# LOGGING = {
+#     'version': 1,
+#     'disable_existing_loggers': False,
+#     'formatters': {
+#         'verbose': {
+#             'format': '%(asctime)s %(levelname)s %(name)s %(message)s',
+#             'datefmt': "%d/%b/%Y %H:%M:%S"
+#         },
+#     },
+#     'handlers': {
+#         'access': {
+#             'level': 'INFO',
+#             'class': 'logging.FileHandler',
+#             'filename': os.path.join(BASE_DIR, 'logger.log'),
+#             'formatter': 'verbose'
+#         },
+#         'error': {
+#             'level': 'ERROR',
+#             'class': 'logging.FileHandler',
+#             'filename': os.path.join(BASE_DIR, 'logger.log'),
+#             'formatter': 'verbose'
+#         },
+#         'debug': {
+#             'level': 'DEBUG',
+#             'class': 'logging.FileHandler',
+#             'filename': os.path.join(BASE_DIR, 'logger.log'),
+#             'formatter': 'verbose'
+#         }
+#     },
+#     'loggers': {
+#         'django.utils.autoreload': {  # Exclude auto-reload messages
+#             'handlers': [],  # No handlers for auto-reload messages
+#             'propagate': False,
+#         },
+#         '': {  # Root logger, captures all logs
+#             'handlers': ['access', 'error', 'debug'],
+#             'level': 'DEBUG',
+#         },
+#     }
+# }
 
 

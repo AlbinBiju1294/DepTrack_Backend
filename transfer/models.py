@@ -33,7 +33,7 @@ class Band():
 class TransferDetails(models.Model):
 
     transfer_id = models.OneToOneField(Transfer,null=False,blank=False,on_delete=models.CASCADE,related_name='details',db_column = 'transfer_id')
-    employee_band = models.IntegerField(choices=Band.band_level,default=1)
+    employee_band = models.CharField(max_length=100,choices=Band.band_level)
     total_experience = models.IntegerField(null = False, blank = False)
     experion_experience = models.IntegerField(null = False, blank = False)
     employee_skills = models.TextField(max_length = 200, null = True, blank = True )
