@@ -5,8 +5,8 @@ from delivery_unit.models import DeliveryUnit
 
 #setting the predefined status codes
 class RequestStatus():
-    REQUEST_STATUS = [(1, "Initiated_by_PM"), (2, "approved_by_DUHEAD"),
-                   (3, "Completed"), (4, "Rejected"), (5, "Cancelled") ]
+    REQUEST_STATUS = [(1, "INITIATED-PM"), (2, "APPROVED-CDUHEAD"),
+                   (3, "COMPLETED"), (4, "REJECTED"), (5, "CANCELLED") ]
 
 
 #table for storing the transfers
