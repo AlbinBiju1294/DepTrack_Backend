@@ -100,8 +100,9 @@ class FilterTransfersAPIView(APIView):
     pagination_class = LimitOffsetPagination
     def get(self, request):
         try:
+            paginator = self.pagination_class()
             filter_params = request.query_params
-            query_set = Transfer.objects.all()
+            query_set = Transfer.objects.filter(status__in=[3,4,5]).order_by('-id')
             for key, value in filter_params.items():
                 if key == 'employee_name':
                     query_set = query_set.filter(
@@ -117,19 +118,26 @@ class FilterTransfersAPIView(APIView):
                 query_set = query_set.filter(
                     transfer_date__range=(start_date, end_date))
 
-            if query_set:
-                paginator = LimitOffsetPagination()
+            if query_set.exists():
                 paginated_queryset = paginator.paginate_queryset(query_set, request)
                 serializer = TransferAndEmployeeSerializer(
                     paginated_queryset, many=True)
-                serialized_data = paginator.get_paginated_response(serializer.data)
-                serialized_data['message'] = "Retrieved successfully"  # Add message to the response
-                return serialized_data
+                response_data = {
+                    'count': paginator.count,
+                    'next': paginator.get_next_link(),
+                    'previous': paginator.get_previous_link(),
+                    'results': serializer.data
+                }
+                if response_data:
+                    return Response({'data': response_data, 'message': 'Transfer history retreived successfully'}, status=status.HTTP_200_OK)
+                else:
+                    return Response({'error': 'List of transfer histories cannot be retreived.'}, status=status.HTTP_404_NOT_FOUND)
+            else:
+                return Response({'error': 'Transfer details does not exists.'}, status=status.HTTP_404_NOT_FOUND)
 
-            return Response({"error": "Transfers not found"}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
-            print(e)
-            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            logger.error(f"Transfer History Listing API: {e}")
+            return Response({'error': {str(e)}}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 # to track the initiated transfer requests.

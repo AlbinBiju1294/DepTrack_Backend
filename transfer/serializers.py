@@ -42,10 +42,11 @@ class TransferAndEmployeeSerializer(serializers.ModelSerializer):
     currentdu = serializers.SerializerMethodField()
     targetdu = serializers.SerializerMethodField()
     status = serializers.SerializerMethodField()
+    initiated_by = serializers.SerializerMethodField()
 
     class Meta:
         model = Transfer
-        fields = ["id", "employee" , "currentdu", "targetdu", "status", "transfer_date"]
+        fields = ["id", "employee" , "currentdu", "targetdu", "status", "transfer_date", "initiated_by"]
 
     def get_employee(self, obj):
         try:
@@ -83,6 +84,16 @@ class TransferAndEmployeeSerializer(serializers.ModelSerializer):
                 for code, status_string in RequestStatus.REQUEST_STATUS:
                     if code == obj.status:
                         return status_string
+            return None
+        except Exception as ex:
+            return None
+        
+    def get_initiated_by(self, obj):
+        try:
+            if obj.initiated_by:
+                initiated_by = Employee.objects.get(id=obj.initiated_by.id)
+                employee_serializer = EmployeeNestedSerializer(initiated_by)
+                return employee_serializer.data
             return None
         except Exception as ex:
             return None
