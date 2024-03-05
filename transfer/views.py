@@ -119,7 +119,10 @@ class FilterTransfersAPIView(APIView):
                 paginated_queryset = paginator.paginate_queryset(query_set, request)
                 serializer = TransferAndEmployeeSerializerTwo(
                     paginated_queryset, many=True)
-                return paginator.get_paginated_response(serializer.data)
+                serialized_data = paginator.get_paginated_response(serializer.data)
+                serialized_data['message'] = "Retrieved successfully"  # Add message to the response
+                return serialized_data
+
             return Response({"error": "Transfers not found"}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             print(e)
@@ -245,17 +248,20 @@ class PendingApprovalsView(APIView):
 
     def get(self, request):
         try:
-            data = request.data
-            du_id = data.get("du_id")
-            tab_switch_btn = data.get('tab_switch_btn')
+            data = request.query_params
+            # du_id = int(data.get("du_id"))
+            du_id =4
+            tab_switch_btn = int(data.get('tab_switch_btn'))
 
             if du_id == ' ' or tab_switch_btn == ' ':
                 return Response({'error': 'Provide required data.'}, status=status.HTTP_200_OK)
             
             if tab_switch_btn == 1:                                                                 #external=1                                       
                 transfer_requests = Transfer.objects.filter(status=2, targetdu_id=du_id)
-            elif tab_switch_btn == 2:                                                               #internal=2
+                print(transfer_requests)
+            elif tab_switch_btn == 2:                                                              #internal=2
                 transfer_requests = Transfer.objects.filter(status=1, currentdu_id=du_id)
+                print(transfer_requests) 
             else:
                 return Response({"error": "Invalid transfer tab request"}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -266,6 +272,7 @@ class PendingApprovalsView(APIView):
                 return Response({"error": "Error in retrieving pending approvals"}, status=status.HTTP_404_NOT_FOUND)
 
         except Exception as e:
+            print(e)
             return Response({"error": {str(e)}}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 

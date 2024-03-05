@@ -1,12 +1,17 @@
 from rest_framework import serializers
-from .models import Transfer,TransferDetails
+from .models import Transfer, TransferDetails
 from employee.models import Employee
 from employee.serializers import EmployeeSerializer, EmployeeNestedSerializer
+from delivery_unit.models import DeliveryUnit
+from delivery_unit.serializers import DuSerializer
+from .models import RequestStatus
+
 
 class TransferSerializer(serializers.ModelSerializer):
     class Meta:
         model = Transfer
         fields = "__all__"
+
 
 class TransferDetailsSerializer(serializers.ModelSerializer):
     class Meta:
@@ -15,7 +20,7 @@ class TransferDetailsSerializer(serializers.ModelSerializer):
 
 
 class TransferAndDetailsSerializer(serializers.ModelSerializer):
-    details = TransferDetailsSerializer(many = False)
+    details = TransferDetailsSerializer(many=False)
     employee = serializers.SerializerMethodField()
 
     class Meta:
@@ -32,12 +37,14 @@ class TransferAndDetailsSerializer(serializers.ModelSerializer):
         except Exception as ex:
             return None
 
+
 class TransferAndEmployeeSerializer(serializers.ModelSerializer):
     employee = serializers.SerializerMethodField()
 
     class Meta:
         model = Transfer
-        fields = ["id","employee", "currentdu_id", "targetdu_id", "status", "transfer_date"]
+        fields = ["id", "employee", "currentdu_id",
+                  "targetdu_id", "status", "transfer_date"]
 
     def get_employee(self, obj):
         try:
@@ -45,16 +52,20 @@ class TransferAndEmployeeSerializer(serializers.ModelSerializer):
                 employee_serializer = EmployeeNestedSerializer(obj.employee)
                 return employee_serializer.data
             return None
-        
+
         except Exception as ex:
             return None
-        
+
+
 class TransferAndEmployeeSerializerTwo(serializers.ModelSerializer):
     employee = serializers.SerializerMethodField()
+    targetdu = serializers.SerializerMethodField()
+    status = serializers.SerializerMethodField()
 
     class Meta:
         model = Transfer
-        fields = ["id", "employee" , "currentdu_id", "targetdu_id", "status", "transfer_date"]
+        fields = ["id", "employee", "currentdu_id",
+                  "targetdu", "status", "transfer_date"]
 
     def get_employee(self, obj):
         try:
@@ -65,5 +76,24 @@ class TransferAndEmployeeSerializerTwo(serializers.ModelSerializer):
             return None
         except Exception as ex:
             return None
-        
 
+    def get_targetdu(self, obj):
+        try:
+            if obj.targetdu_id:
+                targetdu = DeliveryUnit.objects.get(id=obj.targetdu_id.id)
+                du_serializer = DuSerializer(targetdu)
+                return du_serializer.data
+            return None
+        except Exception as ex:
+            return None
+
+
+    def get_status(self, obj):
+        try:
+            if obj.status:
+                for code, status_string in RequestStatus.REQUEST_STATUS:
+                    if code == obj.status:
+                        return status_string
+            return None
+        except Exception as ex:
+            return None
