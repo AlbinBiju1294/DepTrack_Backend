@@ -71,7 +71,7 @@ class UserListView(ListAPIView):
 
   
 class SingleUserView(APIView):
-    """View gives list of all users in the User table to Admin level users """
+    """View gives list of all users in the User ta"ble to Admin level users """
    
     permission_classes = [IsAuthenticated]
  
