@@ -30,6 +30,10 @@ class CreateTransferAPIView(APIView):
             current_du_id = request.data.get('currentdu_id')
             target_du_id = request.data.get('targetdu_id')
             employee_id = request.data.get('employee_id')
+            initiated_by = request.user.employee_id.id
+            request.data['initiated_by'] = initiated_by
+            request.data['total_experience'] = int(request.data['total_experience'])
+            request.data['experion_experience'] = int(request.data['experion_experience'])
 
             if current_du_id == target_du_id and current_du_id != None and target_du_id != None:
                 return Response({'error': 'Current and target DU cannot be the same.'}, status=status.HTTP_400_BAD_REQUEST)
@@ -42,22 +46,26 @@ class CreateTransferAPIView(APIView):
             if transfer_serializer.is_valid():
                 transfer = transfer_serializer.save()
                 request.data['transfer_id'] = transfer.id
+                print(request.data)
                 transfer_detail_serializer = TransferDetailsSerializer(
                     data=request.data)
                 if transfer_detail_serializer.is_valid():
                     transfer_detail_serializer.save()
                     return Response({'message': 'Transfer created successfully.'}, status=status.HTTP_201_CREATED)
                 else:
+                    print(transfer_detail_serializer.errors)
                     return Response({'error': transfer_detail_serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
             else:
+                print(transfer_serializer.errors)
                 return Response({"error": transfer_serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
-        except:
+        except Exception as e:
+            print(e)
             return Response({"error": "Something went wrong"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 # view to get the whole details of the transfer by passing transfer id
 class GetTransferDetailsAPIView(APIView):
-    permission_classes = [IsPm | IsDuhead]
+    permission_classes = [IsPm | IsDuhead | IsAdmin]
     """transfer id is extracted from the request body. Then the transfer instance is 
     obtained using the transfer id. Then the transfer details along with employee details
     is returned"""
@@ -81,14 +89,15 @@ class GetTransferDetailsAPIView(APIView):
 
 # filters the transfers based on the given query parameters
 class FilterTransfersAPIView(APIView):
-    permission_classes = [IsPm | IsDuhead | IsHrbp | IsAdmin]
     """Query params are taken into a variable filter_params and based on those parameters 
     details are fetched from transfer table and the filtered content is returned as
     response"""
 
+    permission_classes = [IsPm | IsDuhead | IsHrbp | IsAdmin]
+    pagination_class = LimitOffsetPagination
     def get(self, request):
         try:
-            filter_params = request.data
+            filter_params = request.query_params
             query_set = Transfer.objects.all()
             for key, value in filter_params.items():
                 if key == 'employee_name':
@@ -106,9 +115,11 @@ class FilterTransfersAPIView(APIView):
                     transfer_date__range=(start_date, end_date))
 
             if query_set:
+                paginator = LimitOffsetPagination()
+                paginated_queryset = paginator.paginate_queryset(query_set, request)
                 serializer = TransferAndEmployeeSerializerTwo(
-                    query_set, many=True)
-                return Response({"data": serializer.data, "message": "filtered successfully"}, status=status.HTTP_200_OK)
+                    paginated_queryset, many=True)
+                return paginator.get_paginated_response(serializer.data)
             return Response({"error": "Transfers not found"}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             print(e)
@@ -125,7 +136,7 @@ class GetInitiatedRequestsApiView(APIView):
 
     def get(self, request):
         try:
-            du_id = request.data.get('du_id')
+            du_id = request.query_params.get('du_id')
             query_set = Transfer.objects.filter(
                 Q(currentdu_id=du_id) & (Q(status=1) | Q(status=2)))
             logger.info(query_set)
@@ -261,31 +272,31 @@ class PendingApprovalsView(APIView):
 #To retreive the number of transfers happened in all DUs to display in dashboard
 class NoOfTransfersInDUsAPIView(APIView):
     """
-    It is for the dashboard to be displayed as a bar-graph. It retreives the number of transfers happened 
+    It is for the dashboard to be displayed as a bar-graph. It retreives the number of transfers happened
     in th last 30 days in each DU.
     """
     permission_classes = [IsDuhead | IsHrbp | IsPm | IsAdmin]
-
+ 
     def get(self,request):
         try:
             thirty_days_ago = (datetime.now() - timedelta(days=30)).date()
-            du_ids = DeliveryUnit.objects.all().values_list('id', flat=True) 
+            dus = DeliveryUnit.objects.all()
             result_data=[]          
-            for du_id in du_ids:
+            for du in dus:
                 try:
-                    transfers_in_last_thirty_days = Transfer.objects.filter( Q(currentdu_id=du_id) | Q(targetdu_id=du_id), status = 3,
-                                                                            transfer_date__gte=thirty_days_ago).count()                     
+                    transfers_in_last_thirty_days = Transfer.objects.filter( Q(currentdu_id=du.id) | Q(targetdu_id=du.id), status = 3,
+                                                                            transfer_date__gte=thirty_days_ago).count()                    
                 except Transfer.DoesNotExist:
                     return Response({'error': 'DU transfer details not found.'}, status=status.HTTP_404_NOT_FOUND)
                 result_data.append ({
-                                        'du_id': du_id,
+                                        'du_name': du.du_name,
                                         'no_of_transfers': transfers_in_last_thirty_days
                                     })
             if result_data:
                 return Response({'data':result_data, 'message':'Number of transfers in all dus retrieved successfully.'}, status=status.HTTP_200_OK)
             else:
                 return Response({'error': 'Unable to retreive number of transfers in DUs'}, status=status.HTTP_404_NOT_FOUND)
-        
+       
         except Exception as e:
             return Response({'error':{str(e)}}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -325,18 +336,19 @@ class TransferStatusCountAPIView(APIView):
     """ Allows the DU head to get the number of transfers intiated ,
         completed,rejected and cancelled in his du"""
    
-    permission_classes = [IsDuhead]
+    permission_classes = [IsDuhead | IsAdmin]
     def get(self, request):
         try:
             logged_in_duhead_du = self.request.user.employee_id.du_id.id
             transfer_count = {
-                "Transfer initiated": Transfer.objects.filter(currentdu_id=logged_in_duhead_du, status__in=[1, 2]).count(),
-                "Transfer completed": Transfer.objects.filter(currentdu_id=logged_in_duhead_du,status=3).count(),
-                "Transfer rejected": Transfer.objects.filter(currentdu_id=logged_in_duhead_du,status=4).count(),
-                "Transfer cancelled": Transfer.objects.filter(currentdu_id=logged_in_duhead_du,status=5).count(),
+                "Transfer Initiated": Transfer.objects.filter(currentdu_id=logged_in_duhead_du, status__in=[1, 2]).count(),
+                "Transfer Completed": Transfer.objects.filter(currentdu_id=logged_in_duhead_du,status=3).count(),
+                "Transfer Rejected": Transfer.objects.filter(currentdu_id=logged_in_duhead_du,status=4).count(),
+                "Transfer Cancelled": Transfer.objects.filter(currentdu_id=logged_in_duhead_du,status=5).count(),
             }
             return Response({"message":"transfer count display successful","data":transfer_count}, status=status.HTTP_200_OK)
         except Exception as e:
+            print(e)
             return Response({ "error":str(e) }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
 
@@ -355,7 +367,10 @@ class TargetDURejectAPIView(APIView):
             transfer_id = data.get("transfer_id")
             rejection_reason=data.get("rejection_reason")
             if transfer_id and rejection_reason:
-                 transfer = Transfer.objects.get(id=transfer_id)
+                 try:
+                    transfer = Transfer.objects.get(id=transfer_id)
+                 except  Transfer.DoesNotExist:
+                    return Response({'error': 'Transfer does not exist'}, status=status.HTTP_400_BAD_REQUEST)
                  transfer.status = 4
                  transfer.rejection_reason=rejection_reason
                  transfer.save()
