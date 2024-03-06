@@ -30,6 +30,7 @@ class CreateTransferAPIView(APIView):
 
     def post(self, request):
         try:
+            print("hello")
             current_du_id = request.data.get('currentdu_id')
             target_du_id = request.data.get('targetdu_id')
             employee_id = request.data.get('employee_id')
@@ -44,6 +45,7 @@ class CreateTransferAPIView(APIView):
             existing_transfer = Transfer.objects.filter(
                 employee_id=employee_id).exclude(status__in=[3, 4, 5]).first()
             if existing_transfer:
+                print("exist_hello")
                 return Response({'error': 'Employee transfer already in progress.'}, status=status.HTTP_400_BAD_REQUEST)
             transfer_serializer = TransferSerializer(data=request.data)
             if transfer_serializer.is_valid():
@@ -146,7 +148,7 @@ class GetInitiatedRequestsApiView(APIView):
     and the status is either 1 or 2 which indicates initiated by PM or pending 
     approval"""
 
-    permission_classes = [IsDuhead | IsAdmin]
+    permission_classes = [IsDuhead | IsAdmin | IsPm]
 
     def get(self, request):
         try:
