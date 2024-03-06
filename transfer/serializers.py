@@ -21,6 +21,9 @@ class TransferDetailsSerializer(serializers.ModelSerializer):
 class TransferAndDetailsSerializer(serializers.ModelSerializer):
     details = TransferDetailsSerializer(many=False)
     employee = serializers.SerializerMethodField()
+    currentdu = serializers.SerializerMethodField()
+    initiated_by = serializers.SerializerMethodField()
+
 
     class Meta:
         model = Transfer
@@ -31,6 +34,26 @@ class TransferAndDetailsSerializer(serializers.ModelSerializer):
             if obj.employee_id:
                 employee = Employee.objects.get(id=obj.employee_id.id)
                 employee_serializer = EmployeeSerializer(employee)
+                return employee_serializer.data
+            return None
+        except Exception as ex:
+            return None
+    
+    def get_currentdu(self, obj):
+        try:
+            if obj.currentdu_id:
+                currentdu = DeliveryUnit.objects.get(id=obj.currentdu_id.id)
+                currentdu_serializer = DuSerializer(currentdu)
+                return currentdu_serializer.data
+            return None
+        except Exception as ex:
+            return None
+        
+    def get_initiated_by(self, obj):
+        try:
+            if obj.initiated_by:
+                initiated_by = Employee.objects.get(id=obj.initiated_by.id)
+                employee_serializer = EmployeeNestedSerializer(initiated_by)
                 return employee_serializer.data
             return None
         except Exception as ex:

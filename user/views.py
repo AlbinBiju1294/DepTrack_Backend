@@ -89,4 +89,5 @@ class SingleUserView(APIView):
             print(e)
             return Response({"error":str(e)},status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
      
