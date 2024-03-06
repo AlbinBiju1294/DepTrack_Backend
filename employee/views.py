@@ -102,7 +102,7 @@ class EmployeeSearchListView(generics.ListAPIView):
     Lists employess according to name or part of name in the search field and department of the logged in DU head
     """
     serializer_class = EmployeeSerializer
-    permission_classes = [IsDuhead|IsAdmin]
+    permission_classes = [IsDuhead|IsAdmin|IsPm]
     pagination_class=None
 
     def list(self, request, *args, **kwargs):
