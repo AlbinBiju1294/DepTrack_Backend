@@ -256,7 +256,7 @@ class PendingApprovalsView(APIView):
     initiated by PM which awaits the approval of DU head and the requests from another DU to accept an employee from
     their respective DU. 
     """
-    permission_classes = [IsAuthenticated, IsDuhead]
+    permission_classes = [IsAuthenticated, IsDuhead | IsAdmin]
 
     def get(self, request):
         try:
