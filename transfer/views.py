@@ -45,7 +45,6 @@ class CreateTransferAPIView(APIView):
             existing_transfer = Transfer.objects.filter(
                 employee_id=employee_id).exclude(status__in=[3, 4, 5]).first()
             if existing_transfer:
-                print("exist_hello")
                 return Response({'error': 'Employee transfer already in progress.'}, status=status.HTTP_400_BAD_REQUEST)
             transfer_serializer = TransferSerializer(data=request.data)
             if transfer_serializer.is_valid():
@@ -65,7 +64,7 @@ class CreateTransferAPIView(APIView):
                 return Response({"error": transfer_serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             print(e)
-            return Response({"error": "Something went wrong"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 # view to get the whole details of the transfer by passing transfer id
