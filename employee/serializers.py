@@ -19,7 +19,7 @@ class PmSerializer(serializers.ModelSerializer):
 class EmployeeNestedSerializer(serializers.ModelSerializer):
     class Meta:
         model = Employee
-        fields = ["id","employee_number", "name"]
+        fields = ["id","employee_number", "name","designation","mail_id"]
 
 class DeliveryUnitMappingSerializer(serializers.ModelSerializer):
     class Meta:

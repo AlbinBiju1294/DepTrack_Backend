@@ -51,8 +51,7 @@ class CreateTransferAPIView(APIView):
                 transfer = transfer_serializer.save()
                 request.data['transfer_id'] = transfer.id
                 print(request.data)
-                transfer_detail_serializer = TransferDetailsSerializer(
-                    data=request.data)
+                transfer_detail_serializer = TransferDetailsSerializer(data=request.data)
                 if transfer_detail_serializer.is_valid():
                     transfer_detail_serializer.save()
                     return Response({'message': 'Transfer created successfully.'}, status=status.HTTP_201_CREATED)
@@ -156,8 +155,7 @@ class GetInitiatedRequestsApiView(APIView):
                 Q(currentdu_id=du_id) & (Q(status=1) | Q(status=2)))
             logger.info(query_set)
             if query_set:
-                serializer = TransferAndEmployeeSerializer(
-                    query_set, many=True)
+                serializer = TransferAndEmployeeSerializer(query_set, many=True)
                 return Response({"data": serializer.data,"message":"Initiated requests retreived successfully"}, status=status.HTTP_200_OK)
             return Response({"message": "Transfer details not found"}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
