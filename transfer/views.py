@@ -45,15 +45,13 @@ class CreateTransferAPIView(APIView):
             existing_transfer = Transfer.objects.filter(
                 employee_id=employee_id).exclude(status__in=[3, 4, 5]).first()
             if existing_transfer:
-                print("exist_hello")
                 return Response({'error': 'Employee transfer already in progress.'}, status=status.HTTP_400_BAD_REQUEST)
             transfer_serializer = TransferSerializer(data=request.data)
             if transfer_serializer.is_valid():
                 transfer = transfer_serializer.save()
                 request.data['transfer_id'] = transfer.id
                 print(request.data)
-                transfer_detail_serializer = TransferDetailsSerializer(
-                    data=request.data)
+                transfer_detail_serializer = TransferDetailsSerializer(data=request.data)
                 if transfer_detail_serializer.is_valid():
                     transfer_detail_serializer.save()
                     return Response({'message': 'Transfer created successfully.'}, status=status.HTTP_201_CREATED)
@@ -65,7 +63,7 @@ class CreateTransferAPIView(APIView):
                 return Response({"error": transfer_serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             print(e)
-            return Response({"error": "Something went wrong"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 # view to get the whole details of the transfer by passing transfer id
@@ -157,8 +155,7 @@ class GetInitiatedRequestsApiView(APIView):
                 Q(currentdu_id=du_id) & (Q(status=1) | Q(status=2)))
             logger.info(query_set)
             if query_set:
-                serializer = TransferAndEmployeeSerializer(
-                    query_set, many=True)
+                serializer = TransferAndEmployeeSerializer(query_set, many=True)
                 return Response({"data": serializer.data,"message":"Initiated requests retreived successfully"}, status=status.HTTP_200_OK)
             return Response({"message": "Transfer details not found"}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
