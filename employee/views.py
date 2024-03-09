@@ -77,7 +77,7 @@ class PMListView(generics.ListAPIView):
       from this list for assigning to the new employee once the incoming transfer request
       is accepted.User objects are filtered for the condition user_role=2"""
     serializer_class = PmSerializer
-    permission_classes = [IsDuhead]
+    permission_classes = [IsDuhead | IsAdmin]
     pagination_class=None
     def get(self,request):
         try:
