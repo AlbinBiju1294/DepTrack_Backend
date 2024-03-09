@@ -23,18 +23,19 @@ class TransferAndDetailsSerializer(serializers.ModelSerializer):
     employee = serializers.SerializerMethodField()
     currentdu = serializers.SerializerMethodField()
     targetdu = serializers.SerializerMethodField()
+    targetdu = serializers.SerializerMethodField()
     initiated_by = serializers.SerializerMethodField()
  
  
     class Meta:
         model = Transfer
-        fields = '__all__'
- 
+        fields = ["id", "employee" , "details", "currentdu", "targetdu", "status", "transfer_date", "initiated_by"]
+
     def get_employee(self, obj):
         try:
             if obj.employee_id:
                 employee = Employee.objects.get(id=obj.employee_id.id)
-                employee_serializer = EmployeeSerializer(employee)
+                employee_serializer = EmployeeNestedSerializer(employee)
                 return employee_serializer.data
             return None
         except Exception as ex:
@@ -49,7 +50,7 @@ class TransferAndDetailsSerializer(serializers.ModelSerializer):
             return None
         except Exception as ex:
             return None
-       
+        
     def get_targetdu(self, obj):
         try:
             if obj.targetdu_id:
@@ -59,7 +60,7 @@ class TransferAndDetailsSerializer(serializers.ModelSerializer):
             return None
         except Exception as ex:
             return None
-       
+        
     def get_initiated_by(self, obj):
         try:
             if obj.initiated_by:
