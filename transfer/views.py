@@ -336,7 +336,7 @@ class NoOfTransfersInDUsAPIView(APIView):
 ##To cancel the initiated transfer request by the duhead
 class CancelTransfer(APIView):
     permission_classes = [IsDuhead]
-    """The transfer status of a particular tarnsfer_id is changed to
+    """The transfer status of a particular transfer_id is changed to
         the new status=5 in the transfer table which indicates that the
         transfer is cancelled.Done by the current_du head"""
  
@@ -348,11 +348,18 @@ class CancelTransfer(APIView):
             logged_in_duhead_du = self.request.user.employee_id.du_id.id
             transfer_instance = Transfer.objects.get(id=transfer_id)
             if transfer_instance.currentdu_id_id == logged_in_duhead_du:
-                if transfer_instance.status not in [3, 4]:
+                if transfer_instance.status not in [3, 4,5]:
                     transfer_instance.status = 5
                     transfer_instance.save()
                     return Response({"message": "Transfer status changed to cancel"}, status=status.HTTP_200_OK)
-                return Response({"message": "Cancellation is not allowed. Transfer has already been approved or rejected."},
+                elif transfer_instance.status == 3:
+                    return Response({"message": "Cancellation is not allowed. Transfer has already been completed "},
+                                status=status.HTTP_400_BAD_REQUEST)
+                elif transfer_instance.status==4:
+                     return Response({"message": "Cancellation is not allowed. Transfer has already been  rejected."},
+                                status=status.HTTP_400_BAD_REQUEST)
+                elif transfer_instance.status==5:
+                     return Response({"message": "Cancellation is not allowed. Transfer has already been cancelled."},
                                 status=status.HTTP_400_BAD_REQUEST)
 
             return Response({"message": "Action not allowed. Employee does not belong to your Delivery Unit."},
@@ -396,7 +403,7 @@ class TargetDURejectAPIView(APIView):
     def patch(self, request):
         try:
             data = request.data
-            transfer_id = data.get("transfer_id")
+            transfer_id = int(data.get("transfer_id"))
             rejection_reason=data.get("rejection_reason")
             if transfer_id and rejection_reason:
                  try:

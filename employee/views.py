@@ -72,7 +72,7 @@ class BandListView(ListCreateAPIView):
 
 
 # To list the new PM names in the C-DU
-class PMListView(generics.ListAPIView):
+class PMListView(ListAPIView):
     """Lists the names and id of the PMs in the du so that the du head can select one Pm
       from this list for assigning to the new employee once the incoming transfer request
       is accepted.User objects are filtered for the condition user_role=2"""
@@ -82,7 +82,9 @@ class PMListView(generics.ListAPIView):
     def get(self,request):
         try:
             logged_in_duhead_du = self.request.user.employee_id.du_id
-            pm_users = User.objects.filter(user_role=2, employee_id__du_id=logged_in_duhead_du)
+            # pm_users = User.objects.filter(user_role=2, employee_id__du_id=logged_in_duhead_du)
+            pm_users = User.objects.filter(user_role=2,employee_id__du_id=logged_in_duhead_du)
+
             if not pm_users:
                 return Response({"message": "No Project Managers available "}, status=status.HTTP_404_NOT_FOUND)
            

@@ -24,7 +24,6 @@ class DeliveryUnitCreateAPIView(APIView):
        then an error message will be displayed"""
    
     permission_classes = [IsAdmin]
-    # serializer_class= DuSerializer
 
     def post(self, request):
         try:
