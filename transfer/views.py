@@ -15,6 +15,9 @@ from rest_framework.pagination import LimitOffsetPagination
 import logging
 from django.core.mail import send_mail
 from django.conf import settings
+from django.utils.html import strip_tags
+from django.template.loader import render_to_string
+from django.core.mail import EmailMultiAlternatives
 
 
 logger = logging.getLogger("django")
@@ -30,7 +33,6 @@ class CreateTransferAPIView(APIView):
 
     def post(self, request):
         try:
-            print("hello")
             current_du_id = request.data.get('currentdu_id')
             target_du_id = request.data.get('targetdu_id')
             employee_id = request.data.get('employee_id')
@@ -50,17 +52,75 @@ class CreateTransferAPIView(APIView):
             if transfer_serializer.is_valid():
                 transfer = transfer_serializer.save()
                 request.data['transfer_id'] = transfer.id
-                print(request.data)
                 transfer_detail_serializer = TransferDetailsSerializer(data=request.data)
                 if transfer_detail_serializer.is_valid():
                     transfer_detail_serializer.save()
-                    return Response({'message': 'Transfer created successfully.'}, status=status.HTTP_201_CREATED)
+
+                    #email logic
+                    initiated_by_emp = Employee.objects.get(id=initiated_by)
+                    transfer_object = Transfer.objects.get(id=transfer.id)
+                    
+                    html_content = render_to_string('initiate_transfer_mail.html', {
+                            'pm_name': initiated_by_emp.name,
+                            'employee_number': transfer_object.employee_id.employee_number,
+                            'employee_name':transfer_object.employee_id.name,
+                            'transfer_id': transfer.id,
+                            'current_du': transfer_object.currentdu_id.du_name,
+                            'target_du': transfer_object.targetdu_id.du_name,
+                            'transfer_date': request.data.get('transfer_date')
+                        })
+                    text_content = strip_tags(html_content)
+                    subject= 'Transfer Initiated for '+ transfer_object.employee_id.employee_number
+
+                    #checking if initiator is PM
+                    if(request.data.get('status') == 1):
+                        current_du_head_id = DeliveryUnitMapping.objects.filter(du_id=current_du_id, du_head_id__isnull=False).first().du_head_id
+                        current_du_head_email = Employee.objects.filter(id=current_du_head_id.id).first().mail_id  if current_du_head_id else None
+                        
+                        recipient_email = [ current_du_head_email, 'jittytresathomas@gmail.com']  
+                        
+                        email_api = EmailAPI()
+                        response = email_api.post(request=request, subject=subject, recipient_email=recipient_email, text_content=text_content, html_content=html_content)
+
+                        if response.status_code == status.HTTP_200_OK:
+                            return Response({'message': 'Transfer created and email sent successfully.'}, status=status.HTTP_201_CREATED)
+                        else: 
+                            return Response({'message': 'Email cannot be sent.'}, status=status.HTTP_400_BAD_REQUEST)
+                    
+                    #checking if initiator is DU head
+                    elif (request.data.get('status') == 2):
+                        target_du_head_id = DeliveryUnitMapping.objects.filter(du_id=target_du_id, du_head_id__isnull=False).first().du_head_id
+                        target_du_head_email = Employee.objects.filter(id=target_du_head_id.id).first().mail_id  if target_du_head_id else None
+
+                        current_du_hrbp = DeliveryUnitMapping.objects.filter(du_id=current_du_id, hrbp_id__isnull=False).first()
+                        target_du_hrbp = DeliveryUnitMapping.objects.filter(du_id=target_du_id, hrbp_id__isnull=False).first()
+                        if current_du_hrbp:
+                            current_du_hrbp_email = current_du_hrbp.hrbp_id.mail_id
+                        else:
+                            current_du_hrbp_email = None
+                        if target_du_hrbp:
+                            target_du_hrbp_email = target_du_hrbp.hrbp_id.mail_id
+                        else:
+                            target_du_hrbp_email = None
+
+                        recipient_email = [ target_du_head_email, current_du_hrbp_email, target_du_hrbp_email, 'jittytresathomas@gmail.com']  
+                        
+                        email_api = EmailAPI()
+                        response = email_api.post(request=request, subject=subject, recipient_email=recipient_email, text_content=text_content, html_content=html_content)
+
+                        if response.status_code == status.HTTP_200_OK:
+                            return Response({'message': 'Transfer created and email sent successfully.'}, status=status.HTTP_201_CREATED)
+                        else: 
+                            return Response({'message': 'Email cannot be sent.'}, status=status.HTTP_400_BAD_REQUEST)
+                    
                 else:
                     print(transfer_detail_serializer.errors)
                     return Response({'error': transfer_detail_serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
             else:
                 print(transfer_serializer.errors)
                 return Response({"error": transfer_serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+
         except Exception as e:
             print(e)
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -170,7 +230,7 @@ class ChangeApprovalDatePmAPIView(APIView):
     is posted into the transfer table.
     """
 
-    permission_classes = [IsDuhead]
+    permission_classes = [IsDuhead | IsAdmin]
 
     def put(self, request):
         try:
@@ -203,17 +263,46 @@ class ChangeApprovalDatePmAPIView(APIView):
             transferred_employee_object.save()
 
             # Prepare email parameters
-            email_data = {
-                'subject': 'Transfer Date and PM Changed',
-                'message': f'Transfer ID: {transfer_id}\nNew PM ID: {new_pm}\nTransfer Date: {transfer_date}',
-                'recipient_email':[ 'jittytresa@gmail.com', 'jittytresathomas@gmail.com']  
-            }
+            # retrieving emails of assigned pm, du heads and hrbps
+            logged_in_user_email = request.user.email
+
+            assigned_pm_email = assigned_emp_pm.mail_id
+            
+            current_du_head_id = DeliveryUnitMapping.objects.filter(du_id=transfer.currentdu_id, du_head_id__isnull=False).first().du_head_id
+            current_du_head_email = Employee.objects.filter(id=current_du_head_id.id).first().mail_id  if current_du_head_id else None
+
+            current_du_hrbp = DeliveryUnitMapping.objects.filter(du_id=transfer.currentdu_id, hrbp_id__isnull=False).first()
+            target_du_hrbp = DeliveryUnitMapping.objects.filter(du_id=transfer.targetdu_id, hrbp_id__isnull=False).first()
+            if current_du_hrbp:
+                current_du_hrbp_email = current_du_hrbp.hrbp_id.mail_id
+            else:
+                current_du_hrbp_email = None
+            if target_du_hrbp:
+                target_du_hrbp_email = target_du_hrbp.hrbp_id.mail_id
+            else:
+                target_du_hrbp_email = None
+
+            html_content = render_to_string('approval_mail.html', {
+                'employee_number': transferred_employee_object.employee_number,
+                'employee_name':transferred_employee_object.name,
+                'transfer_id': transfer_id,
+                'current_du': transfer.currentdu_id.du_name,
+                'target_du': transfer.targetdu_id.du_name,
+                'new_pm_id': new_pm,
+                'transfer_date': transfer_date
+            })
+            text_content = strip_tags(html_content)
+            subject= 'Transfer Date and PM Changed'
+            recipient_email = [ logged_in_user_email, assigned_pm_email, current_du_head_email, current_du_hrbp_email, target_du_hrbp_email, 'jittytresathomas@gmail.com']  
+            
             email_api = EmailAPI()
-            response = email_api.post(request=request, subject=email_data['subject'], message=email_data['message'], recipient_email=email_data['recipient_email'])
+            response = email_api.post(request=request, subject=subject, recipient_email=recipient_email, text_content=text_content, html_content=html_content)
+
             if response.status_code == status.HTTP_200_OK:
                 return Response({'message': 'Transfer date and PM changed successfully. Email sent successfully'}, status=status.HTTP_200_OK)
             else:
                 return Response({'error': 'Failed to send email notification'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
         except Exception as e:
             return Response({'error': f'Error in changing the transfer date and PM: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
@@ -455,12 +544,14 @@ class CDURequestApprovalAPIView(APIView):
 
 
 class EmailAPI(APIView):
-    def post(self, request, subject, message, recipient_email):
+    def post(self, request, subject, recipient_email, text_content, html_content):
         try:
-            if not subject or not message or not recipient_email:
+            if not subject or not recipient_email:
                 return Response({'error': 'Provide all required email data.'}, status=status.HTTP_400_BAD_REQUEST)
+            email = EmailMultiAlternatives(subject, text_content, settings.DEFAULT_FROM_EMAIL, recipient_email)
+            email.attach_alternative(html_content, "text/html")
+            email.send()
 
-            send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, recipient_email)
             return Response({'message': 'Email sent successfully'}, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({'error': f'Error sending email: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
