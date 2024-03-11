@@ -11,4 +11,5 @@ urlpatterns = [
     path("list-duheads/", DuHeadAndDuList.as_view(), name="duheadlist"),
     path("update-duhead/", UpdateDUHeadAPIView.as_view(), name="update-duhead"),
     path("upload-xl", EmployeeUpdate.as_view(), name="upload-xl"),
+    path("get-du-employees", NoOfEmployeesInDUsAPIView.as_view(), name="get-du-employees"),
 ]

@@ -206,3 +206,31 @@ class EmployeeUpdate(APIView):
                 return Response({'error':'upload failed'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         except Exception as ex:
             return Response({'error':str(ex)},status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+
+class NoOfEmployeesInDUsAPIView(APIView):
+    """
+    Retrieves the number of employees in each DU
+    """
+    permission_classes = [IsDuhead | IsHrbp | IsPm | IsAdmin]
+ 
+    def get(self,request):
+        try:
+            dus = DeliveryUnit.objects.all()
+            result_data=[]          
+            for du in dus:
+                try:
+                    employees_in_du = Employee.objects.filter(du_id = du.id).count()                     
+                except Employee.DoesNotExist:
+                    return Response({'error': 'Du employee details not found.'}, status=status.HTTP_404_NOT_FOUND)
+                result_data.append ({
+                                        'du_name': du.du_name,
+                                        'no_of_employees': employees_in_du
+                                    })
+            if result_data:
+                return Response({'data':result_data, 'message':'Number of employees in each dus retrieved successfully.'}, status=status.HTTP_200_OK)
+            else:
+                return Response({'error': 'Unable to retreive number of employees in DUs'}, status=status.HTTP_404_NOT_FOUND)
+       
+        except Exception as e:
+            return Response({'error':{str(e)}}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
