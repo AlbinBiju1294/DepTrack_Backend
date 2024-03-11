@@ -23,9 +23,10 @@ class TransferAndDetailsSerializer(serializers.ModelSerializer):
     employee = serializers.SerializerMethodField()
     currentdu = serializers.SerializerMethodField()
     targetdu = serializers.SerializerMethodField()
+    targetdu = serializers.SerializerMethodField()
     initiated_by = serializers.SerializerMethodField()
-
-
+ 
+ 
     class Meta:
         model = Transfer
         fields = ["id", "employee" , "details", "currentdu", "targetdu", "status", "transfer_date", "initiated_by"]
@@ -39,7 +40,7 @@ class TransferAndDetailsSerializer(serializers.ModelSerializer):
             return None
         except Exception as ex:
             return None
-    
+   
     def get_currentdu(self, obj):
         try:
             if obj.currentdu_id:
@@ -69,7 +70,7 @@ class TransferAndDetailsSerializer(serializers.ModelSerializer):
             return None
         except Exception as ex:
             return None
-
+        
 
 class TransferAndEmployeeSerializer(serializers.ModelSerializer):
     employee = serializers.SerializerMethodField()
