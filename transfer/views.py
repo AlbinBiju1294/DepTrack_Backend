@@ -68,7 +68,7 @@ class CreateTransferAPIView(APIView):
 
 # view to get the whole details of the transfer by passing transfer id
 class GetTransferDetailsAPIView(APIView):
-    permission_classes = [IsPm | IsDuhead | IsAdmin]
+    permission_classes = [IsPm | IsDuhead | IsAdmin ]
     """transfer id is extracted from the request body. Then the transfer instance is 
     obtained using the transfer id. Then the transfer details along with employee details
     is returned"""
@@ -107,6 +107,9 @@ class FilterTransfersAPIView(APIView):
                 if key == 'employee_name':
                     query_set = query_set.filter(
                         employee_id__name__icontains=value)
+                if key == 'employee_number':
+                    query_set = query_set.filter(
+                        employee_id__employee_number__icontains=value) 
                 elif value and key != 'start_date' and key != 'end_date' and key!='offset' and key!='limit':
                     query_set = query_set.filter(**{key: value})
 
@@ -146,7 +149,7 @@ class GetInitiatedRequestsApiView(APIView):
     and the status is either 1 or 2 which indicates initiated by PM or pending 
     approval"""
 
-    permission_classes = [IsDuhead | IsAdmin | IsPm]
+    permission_classes = [IsDuhead | IsAdmin | IsPm | IsHrbp]
 
     def get(self, request):
         try:
@@ -464,4 +467,7 @@ class EmailAPI(APIView):
             return Response({'message': 'Email sent successfully'}, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({'error': f'Error sending email: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+
+
             
