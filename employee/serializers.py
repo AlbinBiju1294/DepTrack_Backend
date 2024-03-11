@@ -11,15 +11,29 @@ class EmployeeSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class PmSerializer(serializers.ModelSerializer):
+    employee_details = serializers.SerializerMethodField()
+
     class Meta:
         model = User
-        fields = ['username','id']
+        fields = ["employee_details"]
+        
+    def get_employee_details(self, obj):
+        try:
+            if obj.employee_id:
+                employee = Employee.objects.get(id=obj.employee_id.id)
+                employee_serializer = EmployeeNestedSerializer(employee)
+                return employee_serializer.data
+            return None
+        except Exception as ex:
+            return None
+
+
 
 
 class EmployeeNestedSerializer(serializers.ModelSerializer):
     class Meta:
         model = Employee
-        fields = ["id","employee_number", "name"]
+        fields = ["id","employee_number", "name","designation","mail_id"]
 
 class DeliveryUnitMappingSerializer(serializers.ModelSerializer):
     class Meta:

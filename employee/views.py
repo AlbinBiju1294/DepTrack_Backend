@@ -68,11 +68,11 @@ class BandListView(ListCreateAPIView):
         band_levels = [band[0] for band in band_level]  
         return Response({"message": "Band levels retrieved successfully", "band_levels": band_levels}, status=status.HTTP_200_OK)    
     def post(self, request):
-        return Response({"message":"Method \"POST\" not allowed."},status=status.HTTP_400_BAD_REQUEST)
+        return Response({"message":"Method \"POST\" not allowed."},status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
 
 # To list the new PM names in the C-DU
-class PMListView(generics.ListAPIView):
+class PMListView(ListAPIView):
     """Lists the names and id of the PMs in the du so that the du head can select one Pm
       from this list for assigning to the new employee once the incoming transfer request
       is accepted.User objects are filtered for the condition user_role=2"""
@@ -82,7 +82,9 @@ class PMListView(generics.ListAPIView):
     def get(self,request):
         try:
             logged_in_duhead_du = self.request.user.employee_id.du_id
-            pm_users = User.objects.filter(user_role=2, employee_id__du_id=logged_in_duhead_du)
+            # pm_users = User.objects.filter(user_role=2, employee_id__du_id=logged_in_duhead_du)
+            pm_users = User.objects.filter(user_role=2,employee_id__du_id=logged_in_duhead_du)
+
             if not pm_users:
                 return Response({"message": "No Project Managers available "}, status=status.HTTP_404_NOT_FOUND)
            
@@ -91,7 +93,7 @@ class PMListView(generics.ListAPIView):
  
         except Exception as ex:
             print(ex)
-            return Response({"data": {"error": str(ex)}}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({"message": str(ex)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 
@@ -110,7 +112,7 @@ class EmployeeSearchListView(generics.ListAPIView):
             logged_in_user_department_id = self.request.user.employee_id.du_id.id
             name = self.request.query_params.get('name')
             if name is None or name =="":
-                 return Response({'error': 'Name parameter is required.'}, status=status.HTTP_400_BAD_REQUEST)
+                 return Response({"data": [], "message": "Employees Listed"}, status=status.HTTP_200_OK)
             queryset = Employee.objects.filter(du_id=logged_in_user_department_id, name__icontains=name)
             if  queryset.exists():
                 serializer = self.get_serializer(queryset, many=True)
@@ -204,3 +206,31 @@ class EmployeeUpdate(APIView):
                 return Response({'error':'upload failed'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         except Exception as ex:
             return Response({'error':str(ex)},status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+
+class NoOfEmployeesInDUsAPIView(APIView):
+    """
+    Retrieves the number of employees in each DU
+    """
+    permission_classes = [IsDuhead | IsHrbp | IsPm | IsAdmin]
+ 
+    def get(self,request):
+        try:
+            dus = DeliveryUnit.objects.all()
+            result_data=[]          
+            for du in dus:
+                try:
+                    employees_in_du = Employee.objects.filter(du_id = du.id).count()                     
+                except Employee.DoesNotExist:
+                    return Response({'error': 'Du employee details not found.'}, status=status.HTTP_404_NOT_FOUND)
+                result_data.append ({
+                                        'du_name': du.du_name,
+                                        'no_of_employees': employees_in_du
+                                    })
+            if result_data:
+                return Response({'data':result_data, 'message':'Number of employees in each dus retrieved successfully.'}, status=status.HTTP_200_OK)
+            else:
+                return Response({'error': 'Unable to retreive number of employees in DUs'}, status=status.HTTP_404_NOT_FOUND)
+       
+        except Exception as e:
+            return Response({'error':{str(e)}}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

@@ -45,15 +45,13 @@ class CreateTransferAPIView(APIView):
             existing_transfer = Transfer.objects.filter(
                 employee_id=employee_id).exclude(status__in=[3, 4, 5]).first()
             if existing_transfer:
-                print("exist_hello")
                 return Response({'error': 'Employee transfer already in progress.'}, status=status.HTTP_400_BAD_REQUEST)
             transfer_serializer = TransferSerializer(data=request.data)
             if transfer_serializer.is_valid():
                 transfer = transfer_serializer.save()
                 request.data['transfer_id'] = transfer.id
                 print(request.data)
-                transfer_detail_serializer = TransferDetailsSerializer(
-                    data=request.data)
+                transfer_detail_serializer = TransferDetailsSerializer(data=request.data)
                 if transfer_detail_serializer.is_valid():
                     transfer_detail_serializer.save()
                     return Response({'message': 'Transfer created successfully.'}, status=status.HTTP_201_CREATED)
@@ -65,12 +63,12 @@ class CreateTransferAPIView(APIView):
                 return Response({"error": transfer_serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             print(e)
-            return Response({"error": "Something went wrong"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 # view to get the whole details of the transfer by passing transfer id
 class GetTransferDetailsAPIView(APIView):
-    permission_classes = [IsPm | IsDuhead | IsAdmin]
+    permission_classes = [IsPm | IsDuhead | IsAdmin ]
     """transfer id is extracted from the request body. Then the transfer instance is 
     obtained using the transfer id. Then the transfer details along with employee details
     is returned"""
@@ -109,6 +107,9 @@ class FilterTransfersAPIView(APIView):
                 if key == 'employee_name':
                     query_set = query_set.filter(
                         employee_id__name__icontains=value)
+                if key == 'employee_number':
+                    query_set = query_set.filter(
+                        employee_id__employee_number__icontains=value) 
                 elif value and key != 'start_date' and key != 'end_date' and key!='offset' and key!='limit':
                     query_set = query_set.filter(**{key: value})
 
@@ -121,9 +122,9 @@ class FilterTransfersAPIView(APIView):
                     transfer_date__range=(start_date, end_date))
 
             if query_set.exists():
-                paginated_queryset = paginator.paginate_queryset(query_set, request)
+                paginated_results = paginator.paginate_queryset(query_set, request)
                 serializer = TransferAndEmployeeSerializer(
-                    paginated_queryset, many=True)
+                    paginated_results, many=True)
                 response_data = {
                     'count': paginator.count,
                     'next': paginator.get_next_link(),
@@ -148,7 +149,7 @@ class GetInitiatedRequestsApiView(APIView):
     and the status is either 1 or 2 which indicates initiated by PM or pending 
     approval"""
 
-    permission_classes = [IsDuhead | IsAdmin | IsPm]
+    permission_classes = [IsDuhead | IsAdmin | IsPm | IsHrbp]
 
     def get(self, request):
         try:
@@ -157,8 +158,7 @@ class GetInitiatedRequestsApiView(APIView):
                 Q(currentdu_id=du_id) & (Q(status=1) | Q(status=2)))
             logger.info(query_set)
             if query_set:
-                serializer = TransferAndEmployeeSerializer(
-                    query_set, many=True)
+                serializer = TransferAndEmployeeSerializer(query_set, many=True)
                 return Response({"data": serializer.data,"message":"Initiated requests retreived successfully"}, status=status.HTTP_200_OK)
             return Response({"message": "Transfer details not found"}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
@@ -288,6 +288,7 @@ class PendingApprovalsView(APIView):
                 print(transfer_requests) 
             else:
                 return Response({"error": "Invalid transfer tab request"}, status=status.HTTP_400_BAD_REQUEST)
+            
 
             serializer = TransferAndEmployeeSerializer(transfer_requests, many=True)
             if serializer.data:
@@ -335,7 +336,7 @@ class NoOfTransfersInDUsAPIView(APIView):
 ##To cancel the initiated transfer request by the duhead
 class CancelTransfer(APIView):
     permission_classes = [IsDuhead]
-    """The transfer status of a particular tarnsfer_id is changed to
+    """The transfer status of a particular transfer_id is changed to
         the new status=5 in the transfer table which indicates that the
         transfer is cancelled.Done by the current_du head"""
  
@@ -343,16 +344,26 @@ class CancelTransfer(APIView):
         transfer_id = request.data.get('transfer_id')
         try:
             if not transfer_id :
-                return Response({"error": "transfer_id is required in the request body"}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({"message": "transfer_id is required in the request body"}, status=status.HTTP_400_BAD_REQUEST)
             logged_in_duhead_du = self.request.user.employee_id.du_id.id
             transfer_instance = Transfer.objects.get(id=transfer_id)
-            if transfer_instance.currentdu_id.id == logged_in_duhead_du:
-                print(type(transfer_instance.currentdu_id.id))
-                transfer_instance.status = 5
-                transfer_instance.save()
-                return Response({"message": "Transfer status changed to cancel"}, status=status.HTTP_200_OK)
-            return Response({"error": "Action not allowed. Employee does not belong to your Delivery Unit."},
+            if transfer_instance.currentdu_id_id == logged_in_duhead_du:
+                if transfer_instance.status not in [3, 4,5]:
+                    transfer_instance.status = 5
+                    transfer_instance.save()
+                    return Response({"message": "Transfer status changed to cancel"}, status=status.HTTP_200_OK)
+                elif transfer_instance.status == 3:
+                    return Response({"message": "Cancellation is not allowed. Transfer has already been completed "},
                                 status=status.HTTP_400_BAD_REQUEST)
+                elif transfer_instance.status==4:
+                     return Response({"message": "Cancellation is not allowed. Transfer has already been  rejected."},
+                                status=status.HTTP_400_BAD_REQUEST)
+                elif transfer_instance.status==5:
+                     return Response({"message": "Cancellation is not allowed. Transfer has already been cancelled."},
+                                status=status.HTTP_400_BAD_REQUEST)
+
+            return Response({"message": "Action not allowed. Employee does not belong to your Delivery Unit."},
+                                status=status.HTTP_403_FORBIDDEN)
         except Transfer.DoesNotExist:
             return Response({"error": "Transfer does not exist"}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
@@ -392,7 +403,7 @@ class TargetDURejectAPIView(APIView):
     def patch(self, request):
         try:
             data = request.data
-            transfer_id = data.get("transfer_id")
+            transfer_id = int(data.get("transfer_id"))
             rejection_reason=data.get("rejection_reason")
             if transfer_id and rejection_reason:
                  try:
@@ -456,4 +467,7 @@ class EmailAPI(APIView):
             return Response({'message': 'Email sent successfully'}, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({'error': f'Error sending email: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+
+
             
