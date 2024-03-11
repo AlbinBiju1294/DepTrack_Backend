@@ -126,7 +126,7 @@ class DuHeadAndDuList(ListAPIView):
 
     permission_classes = [IsAdmin]
     serializer_class = DuAndEmployeeSerializer
-    paginate_by=None
+  
 
     def list(self, request, *args, **kwargs):
         try:
