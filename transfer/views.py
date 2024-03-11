@@ -107,7 +107,7 @@ class FilterTransfersAPIView(APIView):
                 if key == 'employee_name':
                     query_set = query_set.filter(
                         employee_id__name__icontains=value)
-                elif value and key != 'start_date' and key != 'end_date':
+                elif value and key != 'start_date' and key != 'end_date' and key!='offset' and key!='limit':
                     query_set = query_set.filter(**{key: value})
 
             if 'start_date' in filter_params and 'end_date' in filter_params:
@@ -119,9 +119,9 @@ class FilterTransfersAPIView(APIView):
                     transfer_date__range=(start_date, end_date))
 
             if query_set.exists():
-                paginated_queryset = paginator.paginate_queryset(query_set, request)
+                paginated_results = paginator.paginate_queryset(query_set, request)
                 serializer = TransferAndEmployeeSerializer(
-                    paginated_queryset, many=True)
+                    paginated_results, many=True)
                 response_data = {
                     'count': paginator.count,
                     'next': paginator.get_next_link(),

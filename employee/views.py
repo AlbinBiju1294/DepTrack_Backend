@@ -112,7 +112,7 @@ class EmployeeSearchListView(generics.ListAPIView):
             logged_in_user_department_id = self.request.user.employee_id.du_id.id
             name = self.request.query_params.get('name')
             if name is None or name =="":
-                 return Response({'error': 'Name parameter is required.'}, status=status.HTTP_400_BAD_REQUEST)
+                 return Response({"data": [], "message": "Employees Listed"}, status=status.HTTP_200_OK)
             queryset = Employee.objects.filter(du_id=logged_in_user_department_id, name__icontains=name)
             if  queryset.exists():
                 serializer = self.get_serializer(queryset, many=True)
