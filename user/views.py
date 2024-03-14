@@ -69,9 +69,9 @@ class UserListView(ListAPIView):
         
 class SingleUserView(APIView):
     """View gives list of all users in the User table to Admin level users """
-    
+   
     permission_classes = [IsAuthenticated]
-
+ 
     def get(self, request):
         try:
             user = request.user
@@ -88,7 +88,6 @@ class SingleUserView(APIView):
         except Exception as e:
             print(e)
             return Response({"error":str(e)},status.HTTP_500_INTERNAL_SERVER_ERROR)
-
   
 
 
