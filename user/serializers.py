@@ -33,3 +33,13 @@ class UserProfileSerializerTwo(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ('id','username', 'email','user_role')
+
+class EmailSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+    def validate_email(self, value):
+        user = User.objects.filter(email=value).first()
+        if user:
+            return user.email
+        else:
+            raise serializers.ValidationError("User not found with this email.")

@@ -49,8 +49,20 @@ class UserRegistrationView(GenericAPIView):
                 "error": str(ex)}, }
             return Response(res_data, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
-class SsoLoginView(APIView):
-    pass
+class ObtainJWTWithEmail(APIView):
+    serializer_class = EmailSerializer
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        email = serializer.validated_data['email']
+        user = User.objects.get(email=email)
+        refresh = RefreshToken.for_user(user)
+
+        return Response({
+            'refresh': str(refresh),
+            'access': str(refresh.access_token),
+        }, status=status.HTTP_200_OK)
 
 
 #Api endpoint to List all users 
@@ -81,6 +93,7 @@ class SingleUserView(APIView):
             if user:
                 return Response({'data':{
                     'id':user.id,
+                    'employee_id':user.employee_id.id,
                     'username': user.username,
                     'email': user.email,
                     'role':user.user_role,

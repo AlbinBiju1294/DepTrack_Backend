@@ -155,7 +155,7 @@ class GetInitiatedRequestsApiView(APIView):
         try:
             du_id = request.query_params.get('du_id')
             query_set = Transfer.objects.filter(
-                Q(currentdu_id=du_id) & (Q(status=1) | Q(status=2)))
+                Q(currentdu_id=du_id) & (Q(status=1) | Q(status=2))).order_by('-id')
             logger.info(query_set)
             if query_set:
                 serializer = TransferAndEmployeeSerializer(query_set, many=True)

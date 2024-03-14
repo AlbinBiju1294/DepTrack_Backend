@@ -11,4 +11,5 @@ urlpatterns = [
     path('register/', UserRegistrationView.as_view(), name='registration'),
     path("userslist/", UserListView.as_view(), name="userslist"),
     path("user/", SingleUserView.as_view(), name="userfetch"),
+    path('login/', ObtainJWTWithEmail.as_view(), name='token_obtain_email'),
 ]
