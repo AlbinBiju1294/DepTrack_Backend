@@ -1,6 +1,5 @@
 from django.test import TestCase
-from .models import User
-from employee.models import employee
+from employee.models import Employee
 from rest_framework.test import APIClient,APITestCase
 from django.contrib.auth import get_user_model
 import logging

@@ -96,8 +96,6 @@ class PMListView(ListAPIView):
             return Response({"message": str(ex)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-
-
 # View to search employee table
 class EmployeeSearchListView(generics.ListAPIView):
     """

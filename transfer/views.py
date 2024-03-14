@@ -242,7 +242,7 @@ class ChangeApprovalDatePmAPIView(APIView):
             new_pm = data.get("newpm_id")
             transfer_date = data.get("transfer_date")
 
-            if(transfer_id == ' ' or new_pm == ' '):
+            if(transfer_id == ' ' or transfer_date == ' '):
                 return Response({'error': 'Provide the request data correctly.'}, status=status.HTTP_400_BAD_REQUEST)
 
             try:
@@ -250,65 +250,77 @@ class ChangeApprovalDatePmAPIView(APIView):
             except Transfer.DoesNotExist as e:
                 return Response({'error': f'Transfer details not found: {str(e)}'}, status=status.HTTP_404_NOT_FOUND)
             
-            try:
+            if new_pm:
+                print("got in the if that is pm exists")
                 assigned_emp_pm =  Employee.objects.get(id=new_pm)
+                transfer.newpm_id = assigned_emp_pm
+                transfer.status = 3
+            else:
+                transfer.status = 2
+
+            transfer.transfer_date = transfer_date
+            transfer.save()
+
+            try:
                 transferred_employee_id = transfer.employee_id.id
                 transferred_employee_object = Employee.objects.get(id=transferred_employee_id)
             except Employee.DoesNotExist as e:
                 return Response({'error': f'Employee not found: {str(e)}'}, status=status.HTTP_404_NOT_FOUND)
-
-            transfer.newpm_id = assigned_emp_pm
-            transfer.transfer_date = transfer_date
-            transfer.status = 3
-            transfer.save()
-
+                
             transferred_employee_object.du_id = transfer.targetdu_id
             transferred_employee_object.save()
 
             # Prepare email parameters
             # retrieving emails of assigned pm, du heads and hrbps
-            logged_in_user_email = request.user.email
 
-            assigned_pm_email = assigned_emp_pm.mail_id
+            if new_pm:
+                logged_in_user_email = request.user.email
+
+                assigned_pm_email = assigned_emp_pm.mail_id
+                
+                current_du_head_id = DeliveryUnitMapping.objects.filter(du_id=transfer.currentdu_id, du_head_id__isnull=False).first().du_head_id
+                current_du_head_email = Employee.objects.filter(id=current_du_head_id.id).first().mail_id  if current_du_head_id else None
+                print(current_du_head_email)
+
+                current_du_hrbp = DeliveryUnitMapping.objects.filter(du_id=transfer.currentdu_id, hrbp_id__isnull=False).first()
+                target_du_hrbp = DeliveryUnitMapping.objects.filter(du_id=transfer.targetdu_id, hrbp_id__isnull=False).first()
+                if current_du_hrbp:
+                    current_du_hrbp_email = current_du_hrbp.hrbp_id.mail_id
+                else:
+                    current_du_hrbp_email = None
+                if target_du_hrbp:
+                    target_du_hrbp_email = target_du_hrbp.hrbp_id.mail_id
+                else:
+                    target_du_hrbp_email = None
+
+                print(current_du_hrbp_email)
+
+                html_content = render_to_string('approval_mail.html', {
+                    'employee_number': transferred_employee_object.employee_number,
+                    'employee_name':transferred_employee_object.name,
+                    'transfer_id': transfer_id,
+                    'current_du': transfer.currentdu_id.du_name,
+                    'target_du': transfer.targetdu_id.du_name,
+                    'new_pm_id': new_pm,
+                    'transfer_date': transfer_date
+                })
+                text_content = strip_tags(html_content)
+                subject= 'Transfer Date and PM Changed'
+                recipient_email = [ logged_in_user_email, current_du_head_email, assigned_pm_email, current_du_hrbp_email, target_du_hrbp_email, 'jittytresathomas@gmail.com']  
+                
+                email_api = EmailAPI()
+                response = email_api.post(request=request, subject=subject, recipient_email=recipient_email, text_content=text_content, html_content=html_content)
+
+                if response.status_code == status.HTTP_200_OK:
+                    return Response({'message': 'Transfer date and PM changed successfully. Email sent successfully'}, status=status.HTTP_200_OK)
+                else:
+                    return Response({'error': 'Failed to send email notification'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             
-            current_du_head_id = DeliveryUnitMapping.objects.filter(du_id=transfer.currentdu_id, du_head_id__isnull=False).first().du_head_id
-            current_du_head_email = Employee.objects.filter(id=current_du_head_id.id).first().mail_id  if current_du_head_id else None
+            return Response({'message': 'Transfer date changed successfully.'}, status=status.HTTP_200_OK)
 
-            current_du_hrbp = DeliveryUnitMapping.objects.filter(du_id=transfer.currentdu_id, hrbp_id__isnull=False).first()
-            target_du_hrbp = DeliveryUnitMapping.objects.filter(du_id=transfer.targetdu_id, hrbp_id__isnull=False).first()
-            if current_du_hrbp:
-                current_du_hrbp_email = current_du_hrbp.hrbp_id.mail_id
-            else:
-                current_du_hrbp_email = None
-            if target_du_hrbp:
-                target_du_hrbp_email = target_du_hrbp.hrbp_id.mail_id
-            else:
-                target_du_hrbp_email = None
-
-            html_content = render_to_string('approval_mail.html', {
-                'employee_number': transferred_employee_object.employee_number,
-                'employee_name':transferred_employee_object.name,
-                'transfer_id': transfer_id,
-                'current_du': transfer.currentdu_id.du_name,
-                'target_du': transfer.targetdu_id.du_name,
-                'new_pm_id': new_pm,
-                'transfer_date': transfer_date
-            })
-            text_content = strip_tags(html_content)
-            subject= 'Transfer Date and PM Changed'
-            recipient_email = [ logged_in_user_email, assigned_pm_email, current_du_head_email, current_du_hrbp_email, target_du_hrbp_email, 'jittytresathomas@gmail.com']  
-            
-            email_api = EmailAPI()
-            response = email_api.post(request=request, subject=subject, recipient_email=recipient_email, text_content=text_content, html_content=html_content)
-
-            if response.status_code == status.HTTP_200_OK:
-                return Response({'message': 'Transfer date and PM changed successfully. Email sent successfully'}, status=status.HTTP_200_OK)
-            else:
-                return Response({'error': 'Failed to send email notification'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
         except Exception as e:
             return Response({'error': f'Error in changing the transfer date and PM: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
+            
         
 
 # To list all the transfers that happened in a DU, in all statuses
@@ -369,12 +381,15 @@ class PendingApprovalsView(APIView):
             if du_id == ' ' or tab_switch_btn == ' ':
                 return Response({'error': 'Provide required data.'}, status=status.HTTP_200_OK)
             
-            if tab_switch_btn == 1:                                                                 #external=1                                       
-                transfer_requests = Transfer.objects.filter(status=2, targetdu_id=du_id)
-                print(transfer_requests)
+            if tab_switch_btn == 1:     
+                transfer_requests = Transfer.objects.filter(status=2, targetdu_id=du_id)           #external=1                                       
+                if not transfer_requests.exists():
+                    return Response({"message": "No external requests from other DUs exists."}, status=status.HTTP_404_NOT_FOUND)
+
             elif tab_switch_btn == 2:                                                              #internal=2
                 transfer_requests = Transfer.objects.filter(status=1, currentdu_id=du_id)
-                print(transfer_requests) 
+                if not transfer_requests.exists():
+                    return Response({"message": "No internal requests from this DU exists."}, status=status.HTTP_404_NOT_FOUND)
             else:
                 return Response({"error": "Invalid transfer tab request"}, status=status.HTTP_400_BAD_REQUEST)
             
@@ -544,8 +559,6 @@ class CDURequestApprovalAPIView(APIView):
             return Response({'error': f'Error in approving transfer request by current DU head : {e}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 #EMAIL
-
-
 class EmailAPI(APIView):
     def post(self, request, subject, recipient_email, text_content, html_content):
         try:
