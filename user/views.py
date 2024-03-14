@@ -42,7 +42,7 @@ class UserRegistrationView(GenericAPIView):
                     error_message = error_message+" "+username_error[0]
                 logger.error(error_message)
                 res_data = {"message": error_message}
-                return Response(res_data, status=status.HTTP_400_BAD_REQUEST)
+                return Response(err_data, status=status.HTTP_400_BAD_REQUEST)
         except Exception as ex:
             logger.error(ex, "on adding", request.data.username)
             res_data = {"message": " Something went wrong !", "data": {
@@ -88,17 +88,3 @@ class SingleUserView(APIView):
         except Exception as e:
             print(e)
             return Response({"error":str(e)},status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-  
-
-
-
-
-# #Api endpoint to get a single user
-# class UserDetailsAPIView(RetrieveUpdateDestroyAPIView):
-#     """ View gives details of a single user by primary key , 
-#     and enables other  operations like  update user details, delete user details etc """
-
-#     permission_classes = (IsAdmin,)
-#     serializer_class = UserProfileSerializer
-#     queryset = User.objects.filter(is_deleted=False).order_by('-id')

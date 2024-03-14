@@ -45,7 +45,7 @@ class CreateTransferAPIView(APIView):
             existing_transfer = Transfer.objects.filter(
                 employee_id=employee_id).exclude(status__in=[3, 4, 5]).first()
             if existing_transfer:
-                return Response({'error': 'Employee transfer already in progress.'}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({'error': 'Employee Transfer Already in Progress.'}, status=status.HTTP_400_BAD_REQUEST)
             transfer_serializer = TransferSerializer(data=request.data)
             if transfer_serializer.is_valid():
                 transfer = transfer_serializer.save()
@@ -63,7 +63,7 @@ class CreateTransferAPIView(APIView):
                 return Response({"error": transfer_serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             print(e)
-            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({"error": "Transfer initiation failed"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 # view to get the whole details of the transfer by passing transfer id
@@ -107,7 +107,7 @@ class FilterTransfersAPIView(APIView):
                 if key == 'employee_name':
                     query_set = query_set.filter(
                         employee_id__name__icontains=value)
-                if key == 'employee_number':
+                elif key == 'employee_number':
                     query_set = query_set.filter(
                         employee_id__employee_number__icontains=value) 
                 elif value and key != 'start_date' and key != 'end_date' and key!='offset' and key!='limit':
@@ -375,7 +375,8 @@ class TransferStatusCountAPIView(APIView):
     """ Allows the DU head to get the number of transfers intiated ,
         completed,rejected and cancelled in his du"""
    
-    permission_classes = [IsDuhead | IsAdmin]
+    permission_classes = [IsDuhead | IsAdmin | IsPm | IsHrbp]
+
     def get(self, request):
         try:
             logged_in_duhead_du = self.request.user.employee_id.du_id.id
@@ -436,11 +437,12 @@ class CDURequestApprovalAPIView(APIView):
             transfer_id = data.get("transfer_id")
             transfer_date = data.get("transfer_date")
 
-            if transfer_id == ' ' | transfer_date == ' ':
+            if transfer_id == '' or transfer_date == '':
                 return Response({'error': 'Provide the request data correctly.'}, status=status.HTTP_400_BAD_REQUEST)
 
             try:
                 transfer = Transfer.objects.get(id=transfer_id)
+                print(transfer)
             except Transfer.DoesNotExist:
                 return Response({'error': 'Transfer details not found.'}, status=status.HTTP_400_BAD_REQUEST)
 
