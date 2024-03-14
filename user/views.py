@@ -48,6 +48,9 @@ class UserRegistrationView(GenericAPIView):
             res_data = {"message": " Something went wrong !", "data": {
                 "error": str(ex)}, }
             return Response(res_data, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+class SsoLoginView(APIView):
+    pass
 
 
 #Api endpoint to List all users 
