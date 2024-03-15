@@ -3,7 +3,7 @@ from .models import Transfer,TransferDetails, RequestStatus
 from employee.models import Employee
 from employee.serializers import EmployeeSerializer, EmployeeNestedSerializer
 from delivery_unit.models import DeliveryUnit
-from delivery_unit.serializers import DuSerializer
+from delivery_unit.serializers import DuSerializer, NestedDeliveryUnitSerializer
 
 
 class TransferSerializer(serializers.ModelSerializer):
@@ -45,7 +45,7 @@ class TransferAndDetailsSerializer(serializers.ModelSerializer):
         try:
             if obj.currentdu_id:
                 currentdu = DeliveryUnit.objects.get(id=obj.currentdu_id.id)
-                currentdu_serializer = DuSerializer(currentdu)
+                currentdu_serializer = NestedDeliveryUnitSerializer(currentdu)
                 return currentdu_serializer.data
             return None
         except Exception as ex:
@@ -55,7 +55,7 @@ class TransferAndDetailsSerializer(serializers.ModelSerializer):
         try:
             if obj.targetdu_id:
                 targetdu = DeliveryUnit.objects.get(id=obj.targetdu_id.id)
-                targetdu_serializer = DuSerializer(targetdu)
+                targetdu_serializer = NestedDeliveryUnitSerializer(targetdu)
                 return targetdu_serializer.data
             return None
         except Exception as ex:

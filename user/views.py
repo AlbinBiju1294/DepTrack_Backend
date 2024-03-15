@@ -42,12 +42,27 @@ class UserRegistrationView(GenericAPIView):
                     error_message = error_message+" "+username_error[0]
                 logger.error(error_message)
                 res_data = {"message": error_message}
-                return Response(res_data, status=status.HTTP_400_BAD_REQUEST)
+                return Response(err_data, status=status.HTTP_400_BAD_REQUEST)
         except Exception as ex:
             logger.error(ex, "on adding", request.data.username)
             res_data = {"message": " Something went wrong !", "data": {
                 "error": str(ex)}, }
             return Response(res_data, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+class ObtainJWTWithEmail(APIView):
+    serializer_class = EmailSerializer
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        email = serializer.validated_data['email']
+        user = User.objects.get(email=email)
+        refresh = RefreshToken.for_user(user)
+
+        return Response({
+            'refresh': str(refresh),
+            'access': str(refresh.access_token),
+        }, status=status.HTTP_200_OK)
 
 
 #Api endpoint to List all users 
@@ -69,15 +84,16 @@ class UserListView(ListAPIView):
         
 class SingleUserView(APIView):
     """View gives list of all users in the User table to Admin level users """
-    
+   
     permission_classes = [IsAuthenticated]
-
+ 
     def get(self, request):
         try:
             user = request.user
             if user:
                 return Response({'data':{
                     'id':user.id,
+                    'employee_id':user.employee_id.id,
                     'username': user.username,
                     'email': user.email,
                     'role':user.user_role,
@@ -88,6 +104,3 @@ class SingleUserView(APIView):
         except Exception as e:
             print(e)
             return Response({"error":str(e)},status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
-     

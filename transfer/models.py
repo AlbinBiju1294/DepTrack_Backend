@@ -18,8 +18,9 @@ class Transfer(models.Model):
     status = models.IntegerField(choices=RequestStatus.REQUEST_STATUS)
     rejection_reason = models.TextField(max_length = 200, null = True, blank = True )
     transfer_date = models.DateField(null = False, blank =False)
-    newpm_id = models.ForeignKey(Employee, null=True, on_delete=models.CASCADE,db_column = 'newpm_id',related_name = 'newpm_id')
+    newpm_id = models.ForeignKey(Employee, null=True, blank=True, on_delete=models.CASCADE,db_column = 'newpm_id',related_name = 'newpm_id')
     initiated_by = models.ForeignKey(Employee, null=False, blank=False, on_delete=models.CASCADE,db_column = 'initiated_by',related_name = 'initiated_by')
+    transfer_raised_on = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return str(self.id)

@@ -77,7 +77,7 @@ class PMListView(ListAPIView):
       from this list for assigning to the new employee once the incoming transfer request
       is accepted.User objects are filtered for the condition user_role=2"""
     serializer_class = PmSerializer
-    permission_classes = [IsDuhead]
+    permission_classes = [IsDuhead | IsAdmin]
     pagination_class=None
     def get(self,request):
         try:
@@ -94,8 +94,6 @@ class PMListView(ListAPIView):
         except Exception as ex:
             print(ex)
             return Response({"message": str(ex)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
 
 
 # View to search employee table
@@ -189,7 +187,12 @@ class EmployeeUpdate(APIView):
                     for column_name, cell_value in row.items():
                         if column_name.lower()=="email":
                             employee=Employee.objects.filter( mail_id=cell_value.strip()).first()
+                            user=User.objects.filter(email=cell_value.strip()).first()
                             if(employee):
+                                print(index,df.at[index,'role-id'])
+                                if not pd.isna(df.at[index, 'role-id']) and df.at[index, 'role-id'] != '' and  not user:
+                                    new_user = User(email=df.at[index,'email'],user_role=df.at[index,'role-id'],employee_id=employee,username=df.at[index,'user-name'])
+                                    new_user.save()
                                 new_du_id=df.at[index, 'department-id']
                                 new_designation=df.at[index, 'designation']
                                 delivery_unit_instance= DeliveryUnit.objects.get(id=new_du_id)
@@ -200,12 +203,16 @@ class EmployeeUpdate(APIView):
                                 delivery_unit_instance= DeliveryUnit.objects.get(id=new_du_id)
                                 new_employee = Employee(employee_number=df.at[index,'employee-number'],name=df.at[index,'employee-name'], mail_id=df.at[index,'email'],designation=df.at[index,'designation'],du_id=delivery_unit_instance,profile_pic_path=df.at[index,'profile-pic'])
                                 new_employee.save()
+                                if not pd.isna(df.at[index, 'role-id']) and df.at[index, 'role-id'] != '':
+                                    new_user = User(email=df.at[index,'email'],user_role=df.at[index,'role-id'],employee_id=new_employee,username=df.at[index,'user-name'])
+                                    new_user.save()
                             
                 return Response({'message': 'upload successful'}, status=status.HTTP_200_OK)
             else:
                 return Response({'error':'upload failed'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         except Exception as ex:
             return Response({'error':str(ex)},status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            print(str(ex))
         
 
 class NoOfEmployeesInDUsAPIView(APIView):

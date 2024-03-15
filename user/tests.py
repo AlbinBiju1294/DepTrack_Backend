@@ -2,11 +2,11 @@ import logging
 from django.test import TestCase
 from django.urls import reverse
 from rest_framework import status
-from rest_framework.test import APIClient,APITestCase
+from rest_framework.test import APIClient
 from django.contrib.auth import get_user_model
 from rest_framework_simplejwt.tokens import AccessToken
-from .models import User
 from employee.models import Employee
+from delivery_unit.models import DeliveryUnit
 
 
 user = get_user_model()
@@ -117,3 +117,37 @@ class UserAuthenticationTestCase(TestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
         print(response)
+
+
+class UserDetailsTestCase(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        
+        employee = Employee.objects.create(id=40, name="Albin", mail_id="albin@gmail.com", du_id=DeliveryUnit.objects.create())
+        
+        self.user = get_user_model().objects.create_user(
+            username='albin', password='albin', email="albin@example.com",
+            user_role=1, employee_id=employee
+        )
+        
+        self.base_url = "/api/v1/"
+        
+        self.token = AccessToken.for_user(self.user)
+        
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {self.token}')
+
+    def test_user_details_retreival(self):
+        url = reverse('userfetch')
+        
+
+        response = self.client.get(url,format='json')
+        print(response)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_user_details_retreival_unauthorized(self):
+        url = reverse('userfetch')
+        
+        self.client.credentials()
+        response = self.client.get(url,format='json')
+        print(response)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)

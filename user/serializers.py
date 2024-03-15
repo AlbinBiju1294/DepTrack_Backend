@@ -8,10 +8,9 @@ from django.contrib.auth.password_validation import validate_password
 class RegisterSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ('password', 'email', 'user_role', 'username', 'employee_id')
+        fields = ('email', 'user_role', 'username', 'employee_id')
         extra_kwargs = {
             'username': {'required': True},
-            'password': {'write_only': True, 'required': True},
             'email': {'required': False},
             'user_role': {'required': True},
             'employee_id':{'required': True}
@@ -33,3 +32,13 @@ class UserProfileSerializerTwo(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ('id','username', 'email','user_role')
+
+class EmailSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+    def validate_email(self, value):
+        user = User.objects.filter(email=value).first()
+        if user:
+            return user.email
+        else:
+            raise serializers.ValidationError("User not found with this email.")
