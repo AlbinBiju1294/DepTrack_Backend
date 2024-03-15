@@ -1,10 +1,9 @@
-# from django.test import TestCase
-# from user.models import User
-# from employee.models import Employee
-# from rest_framework.test import APIClient,APITestCase
-# from django.contrib.auth import get_user_model
-# import logging
-# from rest_framework import status
+from django.test import TestCase
+from employee.models import Employee
+from rest_framework.test import APIClient,APITestCase
+from django.contrib.auth import get_user_model
+import logging
+from rest_framework import status
 
 # from django.test import TestCase
 # from django.urls import reverse
