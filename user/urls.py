@@ -4,7 +4,6 @@ from rest_framework_simplejwt.views import (
     TokenObtainPairView,
     TokenRefreshView,
 )
-from django_rest_passwordreset.views import reset_password_confirm,reset_password_validate_token
 
 urlpatterns = [
     path('token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
@@ -12,4 +11,5 @@ urlpatterns = [
     path('register/', UserRegistrationView.as_view(), name='registration'),
     path("userslist/", UserListView.as_view(), name="userslist"),
     path("user/", SingleUserView.as_view(), name="userfetch"),
+    path('login/', ObtainJWTWithEmail.as_view(), name='token_obtain_email'),
 ]
