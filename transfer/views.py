@@ -25,7 +25,7 @@ logger = logging.getLogger("django")
 
 # saves the transfers initiated into the transfers and transfer details table
 class CreateTransferAPIView(APIView):
-    permission_classes = [IsPm | IsDuhead]
+    permission_classes = [IsPm | IsDuhead | IsAdmin]
     """The data is serialized using transfer serializer. If it is valid it is saved 
     into the transfer table. The transfer_id from the transfer instance is added 
     to the request data and then it is added to transfer details table along with
