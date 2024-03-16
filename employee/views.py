@@ -241,3 +241,46 @@ class NoOfEmployeesInDUsAPIView(APIView):
        
         except Exception as e:
             return Response({'error':{str(e)}}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
+
+class PotentialDuHeads(ListAPIView):
+    """List possible Du Candidates, users who have user role 1 and are not in the du mapping table"""
+    
+    def get(self, request):
+        try:
+            # Retrieve employee objects of users with role ID 1
+            users_with_role_id_1 = User.objects.filter(user_role=1)
+            employee_ids = [user.employee_id.id for user in users_with_role_id_1]
+            employees = Employee.objects.filter(id__in=employee_ids)
+            
+            # Exclude employees who are already mapped as du heads 
+            mapped_employee_ids = DeliveryUnitMapping.objects.values_list('du_head_id', flat=True)
+            employees = employees.exclude(id__in=mapped_employee_ids)
+            
+            # Serialize the data and return the response
+            data = [{'employee_id': emp.id, 'name': emp.name} for emp in employees]
+            return Response({"data":data,"message":"du Head candidated listed"},status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class PotentialHrbps(ListAPIView):
+    
+    def get(self, request):
+        try:
+            # Retrieve employee objects of users with role ID 4
+            users_with_role_id_1 = User.objects.filter(user_role=4)
+            employee_ids = [user.employee_id.id for user in users_with_role_id_1]
+            employees = Employee.objects.filter(id__in=employee_ids)
+            
+            # Exclude employees who are already hrpbs of other du's
+            mapped_employee_ids = DeliveryUnitMapping.objects.values_list('hrbp_id', flat=True)
+            employees = employees.exclude(id__in=mapped_employee_ids)
+            
+            # Serialize the data and return the response
+            data = [{'employee_id': emp.id, 'name': emp.name} for emp in employees]
+            return Response({"data":data,"message":"hrbp Candidates Listed"},status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
