@@ -36,17 +36,17 @@ class DeliveryUnitCreateAPIView(APIView):
                 return Response({"message": "Delivery Unit with this name already exists."}, status=status.HTTP_400_BAD_REQUEST)
 
             du_instance=DeliveryUnit.objects.create(du_name=du_name)
-            print(du_instance)
             du_head_instance=Employee.objects.get(id=du_head_id)
-            print(du_head_instance)
+            du_head_instance.du_id=du_instance
+            du_head_instance.save()
             hrbp_instance=Employee.objects.get(id=hrbp_id)
-            print(hrbp_instance)
+            hrbp_instance.du_id=du_instance
+            hrbp_instance.save()
             du_mapping_instance =  DeliveryUnitMapping.objects.create(
                     du_id=du_instance,
                     du_head_id=du_head_instance,
                     hrbp_id=hrbp_instance
             )
-
             if du_instance and du_mapping_instance:
                 return Response({"message": "New DU and DuMapping added successfully"}, status=status.HTTP_201_CREATED)
             else:
