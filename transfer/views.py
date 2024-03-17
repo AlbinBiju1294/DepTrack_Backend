@@ -114,6 +114,7 @@ class CreateTransferAPIView(APIView):
                             return Response({'message': 'Email cannot be sent.'}, status=status.HTTP_400_BAD_REQUEST)
                     
                 else:
+                    transfer.delete()
                     print(transfer_detail_serializer.errors)
                     return Response({'error': transfer_detail_serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
             else:
@@ -122,7 +123,7 @@ class CreateTransferAPIView(APIView):
 
 
         except Exception as e:
-            print(e)
+            logger.critical(e)
             return Response({"error": "Transfer initiation failed"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
@@ -235,6 +236,7 @@ class GetInitiatedRequestsApiView(APIView):
                 return Response({"data": serializer.data,"message":"Initiated requests retreived successfully"}, status=status.HTTP_200_OK)
             return Response({"message": "Transfer details not found"}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
+            logger.error(e)
             return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
