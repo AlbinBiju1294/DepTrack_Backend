@@ -251,11 +251,10 @@ class PotentialDuHeads(ListAPIView):
     permission_classes = [IsAdmin]
     def get(self, request):
         try:
-            logged_in_user_department_id = self.request.user.employee_id.du_id.id
             # Retrieve employee objects of users with role ID 1
             users_with_role_id_1 = User.objects.filter(user_role=1)
             employee_ids = [user.employee_id.id for user in users_with_role_id_1]
-            employees = Employee.objects.filter(id__in=employee_ids, du_id=logged_in_user_department_id)
+            employees = Employee.objects.filter(id__in=employee_ids)
             
             # Exclude employees who are already mapped as du heads 
             mapped_employee_ids = DeliveryUnitMapping.objects.values_list('du_head_id', flat=True)
@@ -274,11 +273,10 @@ class PotentialHrbps(ListAPIView):
     permission_classes = [IsAdmin]
     def get(self, request):
         try:
-            logged_in_user_department_id = self.request.user.employee_id.du_id.id
             # Retrieve employee objects of users with role ID 4
             users_with_role_id_1 = User.objects.filter(user_role=4)
             employee_ids = [user.employee_id.id for user in users_with_role_id_1]
-            employees = Employee.objects.filter(id__in=employee_ids, du_id=logged_in_user_department_id)
+            employees = Employee.objects.filter(id__in=employee_ids)
             
             # Exclude employees who are already hrpbs of other du's
             mapped_employee_ids = DeliveryUnitMapping.objects.values_list('hrbp_id', flat=True)
