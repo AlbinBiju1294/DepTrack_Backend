@@ -181,7 +181,7 @@ class FilterTransfersAPIView(APIView):
                 elif value and key not in ['start_date', 'end_date', 'offset', 'limit']:
                     query_set = query_set.filter(**{key: value})
 
-            if 'start_date' in filter_params and 'end_date' in filter_params:
+            if 'start_date' in filter_params and 'end_date'  in filter_params:
                 start_date = datetime.strptime(
                     filter_params['start_date'], '%Y-%m-%d').date()
                 end_date = datetime.strptime(
@@ -496,12 +496,13 @@ class TransferStatusCountAPIView(APIView):
 
     def get(self, request):
         try:
+            thirty_days_ago = (datetime.now() - timedelta(days=30)).date()
             logged_in_duhead_du = self.request.user.employee_id.du_id.id
             transfer_count = {
-                "Transfer Initiated": Transfer.objects.filter(currentdu_id=logged_in_duhead_du, status__in=[1, 2]).count(),
-                "Transfer Completed": Transfer.objects.filter(currentdu_id=logged_in_duhead_du,status=3).count(),
-                "Transfer Rejected": Transfer.objects.filter(currentdu_id=logged_in_duhead_du,status=4).count(),
-                "Transfer Cancelled": Transfer.objects.filter(currentdu_id=logged_in_duhead_du,status=5).count(),
+                "Transfer Initiated": Transfer.objects.filter(currentdu_id=logged_in_duhead_du, status__in=[1, 2], transfer_date__gte = thirty_days_ago ).count(),
+                "Transfer Completed": Transfer.objects.filter(currentdu_id=logged_in_duhead_du,status=3, transfer_date__gte = thirty_days_ago).count(),
+                "Transfer Rejected": Transfer.objects.filter(currentdu_id=logged_in_duhead_du,status=4, transfer_date__gte = thirty_days_ago).count(),
+                "Transfer Cancelled": Transfer.objects.filter(currentdu_id=logged_in_duhead_du,status=5, transfer_date__gte = thirty_days_ago).count(),
             }
             return Response({"message":"transfer count display successful","data":transfer_count}, status=status.HTTP_200_OK)
         except Exception as e:

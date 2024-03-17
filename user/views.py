@@ -81,7 +81,7 @@ class ObtainJWTWithEmail(APIView):
 class UserListView(ListAPIView):
     """View gives list of all users in the User table to Admin level users """
     
-    permission_classes = (IsAdmin,)         
+    permission_classes = (IsAdmin,IsAuthenticated,)         
     serializer_class =  UserProfileSerializer
     def list(self, request, *args, **kwargs):
         try:

@@ -126,7 +126,7 @@ class DuHeadAndDuList(ListAPIView):
 
     permission_classes = [IsAdmin]
     serializer_class = DuAndEmployeeSerializer
-    paginate_by=None
+  
 
     def list(self, request, *args, **kwargs):
         try:
@@ -187,7 +187,12 @@ class EmployeeUpdate(APIView):
                     for column_name, cell_value in row.items():
                         if column_name.lower()=="email":
                             employee=Employee.objects.filter( mail_id=cell_value.strip()).first()
+                            user=User.objects.filter(email=cell_value.strip()).first()
                             if(employee):
+                                print(index,df.at[index,'role-id'])
+                                if not pd.isna(df.at[index, 'role-id']) and df.at[index, 'role-id'] != '' and  not user:
+                                    new_user = User(email=df.at[index,'email'],user_role=df.at[index,'role-id'],employee_id=employee,username=df.at[index,'user-name'])
+                                    new_user.save()
                                 new_du_id=df.at[index, 'department-id']
                                 new_designation=df.at[index, 'designation']
                                 delivery_unit_instance= DeliveryUnit.objects.get(id=new_du_id)
@@ -198,12 +203,16 @@ class EmployeeUpdate(APIView):
                                 delivery_unit_instance= DeliveryUnit.objects.get(id=new_du_id)
                                 new_employee = Employee(employee_number=df.at[index,'employee-number'],name=df.at[index,'employee-name'], mail_id=df.at[index,'email'],designation=df.at[index,'designation'],du_id=delivery_unit_instance,profile_pic_path=df.at[index,'profile-pic'])
                                 new_employee.save()
+                                if not pd.isna(df.at[index, 'role-id']) and df.at[index, 'role-id'] != '':
+                                    new_user = User(email=df.at[index,'email'],user_role=df.at[index,'role-id'],employee_id=new_employee,username=df.at[index,'user-name'])
+                                    new_user.save()
                             
                 return Response({'message': 'upload successful'}, status=status.HTTP_200_OK)
             else:
                 return Response({'error':'upload failed'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         except Exception as ex:
             return Response({'error':str(ex)},status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            print(str(ex))
         
 
 class NoOfEmployeesInDUsAPIView(APIView):
@@ -232,3 +241,46 @@ class NoOfEmployeesInDUsAPIView(APIView):
        
         except Exception as e:
             return Response({'error':{str(e)}}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
+
+class PotentialDuHeads(ListAPIView):
+    """List possible Du Candidates, users who have user role 1 and are not in the du mapping table"""
+    
+    def get(self, request):
+        try:
+            # Retrieve employee objects of users with role ID 1
+            users_with_role_id_1 = User.objects.filter(user_role=1)
+            employee_ids = [user.employee_id.id for user in users_with_role_id_1]
+            employees = Employee.objects.filter(id__in=employee_ids)
+            
+            # Exclude employees who are already mapped as du heads 
+            mapped_employee_ids = DeliveryUnitMapping.objects.values_list('du_head_id', flat=True)
+            employees = employees.exclude(id__in=mapped_employee_ids)
+            
+            # Serialize the data and return the response
+            data = [{'employee_id': emp.id, 'name': emp.name} for emp in employees]
+            return Response({"data":data,"message":"du Head candidated listed"},status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class PotentialHrbps(ListAPIView):
+    
+    def get(self, request):
+        try:
+            # Retrieve employee objects of users with role ID 4
+            users_with_role_id_1 = User.objects.filter(user_role=4)
+            employee_ids = [user.employee_id.id for user in users_with_role_id_1]
+            employees = Employee.objects.filter(id__in=employee_ids)
+            
+            # Exclude employees who are already hrpbs of other du's
+            mapped_employee_ids = DeliveryUnitMapping.objects.values_list('hrbp_id', flat=True)
+            employees = employees.exclude(id__in=mapped_employee_ids)
+            
+            # Serialize the data and return the response
+            data = [{'employee_id': emp.id, 'name': emp.name} for emp in employees]
+            return Response({"data":data,"message":"hrbp Candidates Listed"},status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
