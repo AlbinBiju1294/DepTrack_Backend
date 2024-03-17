@@ -5,7 +5,7 @@ from .serializers import *
 from rest_framework.permissions import AllowAny,IsAuthenticated
 from user.rbac import *
 from user.models import User
-from employee.models import Employee
+from employee.models import *
 from employee.serializers import EmployeeSerializer
 from rest_framework.response import Response
 from rest_framework import status
@@ -19,7 +19,7 @@ logger = logging.getLogger("django")
 
 # To add new Du
 class DeliveryUnitCreateAPIView(APIView):
-    """Allows the admin to add new Du to the delivery_unit table.
+    """Allows the admin to add new Du to the delivery_unit table and map du head and hrbp for the same.
        The Du_name is given in the body.If the entered Du already exists
        then an error message will be displayed"""
    
@@ -28,16 +28,31 @@ class DeliveryUnitCreateAPIView(APIView):
     def post(self, request):
         try:
             du_name = request.data.get('du_name')
-            if not du_name :
-                return Response({"message": "du_name is required in the request body"}, status=status.HTTP_400_BAD_REQUEST)
+            du_head_id=request.data.get('du_head_id')
+            hrbp_id=request.data.get('hrbp_id')
+            if not (du_name and du_head_id and hrbp_id):
+                return Response({"message": "du_name,du_head_id and hrbp_id is required in the request body"}, status=status.HTTP_400_BAD_REQUEST)
             if DeliveryUnit.objects.filter(du_name=du_name).exists():
                 return Response({"message": "Delivery Unit with this name already exists."}, status=status.HTTP_400_BAD_REQUEST)
 
-            serializer = DuSerializer(data=request.data)
-            if serializer.is_valid():
-                serializer.save()
-                return Response({"message":"new DU added successfully"}, status=status.HTTP_201_CREATED)
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            du_instance=DeliveryUnit.objects.create(du_name=du_name)
+            print(du_instance)
+            du_head_instance=Employee.objects.get(id=du_head_id)
+            print(du_head_instance)
+            hrbp_instance=Employee.objects.get(id=hrbp_id)
+            print(hrbp_instance)
+            du_mapping_instance =  DeliveryUnitMapping.objects.create(
+                    du_id=du_instance,
+                    du_head_id=du_head_instance,
+                    hrbp_id=hrbp_instance
+            )
+
+            if du_instance and du_mapping_instance:
+                return Response({"message": "New DU and DuMapping added successfully"}, status=status.HTTP_201_CREATED)
+            else:
+                # If one of the instances failed to create
+                return Response({"message": "Failed to create one or more instances"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
         except Exception as e:
             return Response( {"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -76,7 +91,6 @@ class GetDUNameAndHead(ListAPIView):
                 'du_head_name': du_head_name,
                 'du_name': du_name
             })
-
         return Response({du_details})
     
 class DashboardDuDetails(APIView):
