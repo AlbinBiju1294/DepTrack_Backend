@@ -158,19 +158,27 @@ class FilterTransfersAPIView(APIView):
 
     permission_classes = [IsPm | IsDuhead | IsHrbp | IsAdmin]
     pagination_class = LimitOffsetPagination
+
     def get(self, request):
         try:
-            paginator = self.pagination_class()
             filter_params = request.query_params
-            query_set = Transfer.objects.filter(status__in=[3,4,5]).order_by('-id')
+            query_set = Transfer.objects.filter(status__in=[3, 4, 5]).order_by('-id')
+            
+            # Check if limit and offset are provided
+            if 'limit' in filter_params and 'offset' in filter_params:
+                paginator = self.pagination_class()
+                paginated = True
+            else:
+                paginated = False
+
             for key, value in filter_params.items():
                 if key == 'employee_name':
                     query_set = query_set.filter(
                         employee_id__name__icontains=value)
                 elif key == 'employee_number':
                     query_set = query_set.filter(
-                        employee_id__employee_number__icontains=value) 
-                elif value and key != 'start_date' and key != 'end_date' and key!='offset' and key!='limit':
+                        employee_id__employee_number__icontains=value)
+                elif value and key not in ['start_date', 'end_date', 'offset', 'limit']:
                     query_set = query_set.filter(**{key: value})
 
             if 'start_date' in filter_params and 'end_date' in filter_params:
@@ -182,25 +190,30 @@ class FilterTransfersAPIView(APIView):
                     transfer_date__range=(start_date, end_date))
 
             if query_set.exists():
-                paginated_results = paginator.paginate_queryset(query_set, request)
-                serializer = TransferAndEmployeeSerializer(
-                    paginated_results, many=True)
-                response_data = {
-                    'count': paginator.count,
-                    'next': paginator.get_next_link(),
-                    'previous': paginator.get_previous_link(),
-                    'results': serializer.data
-                }
-                if response_data:
-                    return Response({'data': response_data, 'message': 'Transfer history retreived successfully'}, status=status.HTTP_200_OK)
+                if paginated:  # Apply pagination if limit and offset are provided
+                    paginator = self.pagination_class()
+                    paginated_results = paginator.paginate_queryset(query_set, request)
+                    serializer = TransferAndEmployeeSerializer(
+                        paginated_results, many=True)
+                    response_data = {
+                        'count': paginator.count,
+                        'next': paginator.get_next_link(),
+                        'previous': paginator.get_previous_link(),
+                        'results': serializer.data
+                    }
                 else:
-                    return Response({'error': 'List of transfer histories cannot be retreived.'}, status=status.HTTP_404_NOT_FOUND)
+                    serializer = TransferAndEmployeeSerializer(
+                        query_set, many=True)
+                    response_data = {'count': len(serializer.data), 'results': serializer.data}
+
+                return Response({'data': response_data, 'message': 'Transfer history retrieved successfully'}, status=status.HTTP_200_OK)
             else:
-                return Response({'error': 'Transfer details does not exists.'}, status=status.HTTP_404_NOT_FOUND)
+                return Response({'error': 'Transfer details do not exist.'}, status=status.HTTP_404_NOT_FOUND)
 
         except Exception as e:
             logger.error(f"Transfer History Listing API: {e}")
-            return Response({'error': {str(e)}}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 
 # to track the initiated transfer requests.
