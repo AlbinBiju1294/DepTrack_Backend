@@ -152,10 +152,10 @@ class FilterTransfersAPIView(APIView):
                 elif key == 'employee_number':
                     query_set = query_set.filter(
                         employee_id__employee_number__icontains=value) 
-                elif value and key != 'start_date' and key != 'end_date' and key!='offset' and key!='limit':
+                elif value and key != 'start_date' and key != 'end_date' and key!='offset' and key!='limit' and key!='transfer_raised_on':
                     query_set = query_set.filter(**{key: value})
 
-            if 'start_date' in filter_params and 'end_date' in filter_params:
+            if 'start_date' in filter_params and 'end_date'  in filter_params:
                 start_date = datetime.strptime(
                     filter_params['start_date'], '%Y-%m-%d').date()
                 end_date = datetime.strptime(

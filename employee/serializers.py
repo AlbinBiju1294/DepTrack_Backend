@@ -48,6 +48,7 @@ class DeliveryUnitMappingSerializer(serializers.ModelSerializer):
 class DuAndEmployeeSerializer(serializers.ModelSerializer):
     du_head = serializers.SerializerMethodField(source='du_head_id')
     du = serializers.SerializerMethodField(source='du_id')
+    
 
     class Meta:
         model = DeliveryUnitMapping
