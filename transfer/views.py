@@ -61,21 +61,20 @@ class CreateTransferAPIView(APIView):
                     #email logic
                     transfer_status = request.data.get('status')
                     initiated_by_emp = Employee.objects.get(id=initiated_by)
-                    transfer_object = Transfer.objects.get(id=transfer.id)
                     transfer_date_set = datetime.strptime(request.data.get('transfer_date'), "%Y-%m-%d")
                     
                     html_page = 'initiate_transfer_mail.html'
                     html_content_object = {
                         'pm_name': initiated_by_emp.name,
-                        'employee_number': transfer_object.employee_id.employee_number,
-                        'employee_name':transfer_object.employee_id.name,
+                        'employee_number': transfer.employee_id.employee_number,
+                        'employee_name':transfer.employee_id.name,
                         'transfer_id': transfer.id,
-                        'current_du': transfer_object.currentdu_id.du_name,
-                        'target_du': transfer_object.targetdu_id.du_name,
+                        'current_du': transfer.currentdu_id.du_name,
+                        'target_du': transfer.targetdu_id.du_name,
                         'transfer_date': transfer_date_set.strftime("%d-%m-%Y")
                     }
 
-                    subject= 'Transfer Initiated for '+ transfer_object.employee_id.employee_number
+                    subject= 'Transfer Initiated for '+ transfer.employee_id.employee_number
                                    
                     #checking if initiator is PM
                     if(transfer_status == 1):
@@ -259,7 +258,7 @@ class ChangeApprovalDatePmAPIView(APIView):
                 'transfer_id': transfer_id,
                 'current_du': transfer.currentdu_id.du_name,
                 'target_du': transfer.targetdu_id.du_name,
-                'new_pm_id': new_pm,
+                'new_pm_id': new_pm.name if new_pm else None,
                 'transfer_date': transfer_date_set.strftime("%d-%m-%Y")
             }
             subject = 'Transfer Request Approved'
@@ -314,8 +313,9 @@ class CDURequestApproval(APIView):
             
             transfer_date_set = datetime.strptime(transfer_date, "%Y-%m-%d")
 
-            html_page = 'approval_mail.html'
+            html_page = 'initiate_transfer_mail.html'
             html_content_object = {
+                'pm_name': transfer.initiated_by.name,
                 'employee_number': transferred_employee_object.employee_number,
                 'employee_name':transferred_employee_object.name,
                 'transfer_id': transfer_id,
@@ -544,21 +544,5 @@ class TargetDURejectAPIView(APIView):
             print(e)
             return Response({ "errror": f"Something went wrong. {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
  
-
-#EMAIL
-class EmailAPI(APIView):
-    def post(self, request, subject, recipient_email, text_content, html_content):
-        try:
-            if not subject or not recipient_email:
-                return Response({'error': 'Provide all required email data.'}, status=status.HTTP_400_BAD_REQUEST)
-            email = EmailMultiAlternatives(subject, text_content, settings.DEFAULT_FROM_EMAIL, recipient_email)
-            email.attach_alternative(html_content, "text/html")
-            email.send()
-
-            return Response({'message': 'Email sent successfully'}, status=status.HTTP_200_OK)
-        except Exception as e:
-            return Response({'error': f'Error sending email: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
-
 
             
