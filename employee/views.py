@@ -251,6 +251,7 @@ class NoOfEmployeesInDUsAPIView(APIView):
 class PotentialDuHeads(ListAPIView):
     """List possible Du Candidates, users who have user role 1 and are not in the du mapping table"""
     
+    permission_classes = [IsAdmin]
     def get(self, request):
         try:
             # Retrieve employee objects of users with role ID 1
@@ -270,7 +271,9 @@ class PotentialDuHeads(ListAPIView):
 
 
 class PotentialHrbps(ListAPIView):
-    
+
+
+    permission_classes = [IsAdmin]
     def get(self, request):
         try:
             # Retrieve employee objects of users with role ID 4
