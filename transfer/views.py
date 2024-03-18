@@ -272,7 +272,7 @@ class ChangeApprovalDatePmAPIView(APIView):
                 'transfer_id': transfer_id,
                 'current_du': transfer.currentdu_id.du_name,
                 'target_du': transfer.targetdu_id.du_name,
-                'new_pm_id': new_pm.name if new_pm else None,
+                'new_pm_id': assigned_emp_pm if new_pm else None,
                 'transfer_date': transfer_date_set.strftime("%d-%m-%Y")
             }
             subject = 'Transfer Request Approved'
