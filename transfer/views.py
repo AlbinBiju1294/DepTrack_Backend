@@ -413,12 +413,12 @@ class PendingApprovalsView(APIView):
                 return Response({'error': 'Provide required data.'}, status=status.HTTP_200_OK)
             
             if tab_switch_btn == 1:     
-                transfer_requests = Transfer.objects.filter(status=2, targetdu_id=du_id)           #external=1                                       
+                transfer_requests = Transfer.objects.filter(status=2, targetdu_id=du_id).order_by('-id')           #external=1                                       
                 if not transfer_requests.exists():
                     return Response({"message": "No external requests from other DUs exists."}, status=status.HTTP_404_NOT_FOUND)
 
             elif tab_switch_btn == 2:                                                              #internal=2
-                transfer_requests = Transfer.objects.filter(status=1, currentdu_id=du_id)
+                transfer_requests = Transfer.objects.filter(status=1, currentdu_id=du_id).order_by('-id') 
                 if not transfer_requests.exists():
                     return Response({"message": "No internal requests from this DU exists."}, status=status.HTTP_404_NOT_FOUND)
             else:
