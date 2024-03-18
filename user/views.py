@@ -11,7 +11,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.generics import UpdateAPIView, RetrieveUpdateAPIView, ListAPIView, GenericAPIView,RetrieveUpdateDestroyAPIView
 from .rbac import IsDuhead, IsAdmin, IsHrbp, IsPm, IsUser
 import logging
-
+from employee.models import DeliveryUnitMapping
 logger = logging.getLogger("django")
 
 # Create your views here.
@@ -49,20 +49,32 @@ class UserRegistrationView(GenericAPIView):
                 "error": str(ex)}, }
             return Response(res_data, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework.response import Response
+from rest_framework import status
+from rest_framework.views import APIView
+from django.contrib.auth import get_user_model
+
 class ObtainJWTWithEmail(APIView):
-    serializer_class = EmailSerializer
-
     def post(self, request, *args, **kwargs):
-        serializer = self.serializer_class(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        email = serializer.validated_data['email']
-        user = User.objects.get(email=email)
-        refresh = RefreshToken.for_user(user)
+        try:
+            email = request.data.get('email')
+            if not email:
+                return Response({'error': 'Email address is required'}, status=status.HTTP_400_BAD_REQUEST)
+            
+            user = get_user_model().objects.filter(email=email).first()
+            if not user:
+                return Response({'error': 'User with this email does not exist'}, status=status.HTTP_404_NOT_FOUND)
 
-        return Response({
-            'refresh': str(refresh),
-            'access': str(refresh.access_token),
-        }, status=status.HTTP_200_OK)
+            refresh = RefreshToken.for_user(user)
+
+            return Response({
+                'refresh': str(refresh),
+                'access': str(refresh.access_token),
+            }, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 
 #Api endpoint to List all users 
@@ -91,14 +103,19 @@ class SingleUserView(APIView):
         try:
             user = request.user
             if user:
-                return Response({'data':{
-                    'id':user.id,
-                    'employee_id':user.employee_id.id,
-                    'username': user.username,
-                    'email': user.email,
-                    'role':user.user_role,
-                    'du_id':user.employee_id.du_id.id
-                }},status.HTTP_200_OK)
+                du_head_id = DeliveryUnitMapping.objects.filter(du_id = user.employee_id.du_id.id).first().du_head_id
+                if user.user_role != 1 or (user.user_role == 1 and user.employee_id.id == du_head_id.id):
+                    return Response({'data':{
+                        'id':user.id,
+                        'employee_id':user.employee_id.id,
+                        'username': user.username,
+                        'employee_name': user.employee_id.name,
+                        'email': user.email,
+                        'role':user.user_role,
+                        'du_id':user.employee_id.du_id.id
+                    }},status.HTTP_200_OK)
+                else:
+                    return Response({'error':'You are not assigned to a DU as head'},status.HTTP_401_UNAUTHORIZED)
             else:
                 return Response({"error":"User not found"},status.HTTP_404_NOT_FOUND)
         except Exception as e:

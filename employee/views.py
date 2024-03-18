@@ -152,9 +152,12 @@ class UpdateDUHeadAPIView(APIView):
             data = request.data
             new_du_head_id = data.get("du_head_id")
             du_id = data.get("du_id")
-
+            print(new_du_head_id,du_id)
+            if new_du_head_id==None:
+                return Response({'error': 'Please select the new DU head'}, status=status.HTTP_400_BAD_REQUEST)
+            
             try:
-                du_head_emp_id = Employee.objects.get(id=new_du_head_id).id
+                du_head_emp_id = Employee.objects.get(id=new_du_head_id)
                 du_mapping_obj = DeliveryUnitMapping.objects.get(du_id=du_id)
             except Exception as e:
                 print(e)
@@ -212,7 +215,6 @@ class EmployeeUpdate(APIView):
                 return Response({'error':'upload failed'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         except Exception as ex:
             return Response({'error':str(ex)},status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-            print(str(ex))
         
 
 class NoOfEmployeesInDUsAPIView(APIView):
