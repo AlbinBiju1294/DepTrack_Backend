@@ -7,6 +7,7 @@ from django.contrib.auth import get_user_model
 from rest_framework_simplejwt.tokens import AccessToken
 from employee.models import Employee
 from delivery_unit.models import DeliveryUnit
+from employee.models import DeliveryUnitMapping
 
 
 user = get_user_model()
@@ -122,12 +123,12 @@ class UserAuthenticationTestCase(TestCase):
 class UserDetailsTestCase(TestCase):
     def setUp(self):
         self.client = APIClient()
-        
-        employee = Employee.objects.create(id=40, name="Albin", mail_id="albin@gmail.com", du_id=DeliveryUnit.objects.create())
+        self.du4 = DeliveryUnit.objects.create(du_name = "DU4")
+        self.employee = Employee.objects.create(id=78, name="Albin", mail_id="albin@gmail.com", du_id=self.du4)
         
         self.user = get_user_model().objects.create_user(
             username='albin', password='albin', email="albin@example.com",
-            user_role=1, employee_id=employee
+            user_role=1, employee_id=self.employee
         )
         
         self.base_url = "/api/v1/"
@@ -138,10 +139,8 @@ class UserDetailsTestCase(TestCase):
 
     def test_user_details_retreival(self):
         url = reverse('userfetch')
-        
-
+        DeliveryUnitMapping.objects.create(du_id=self.du4,du_head_id=self.employee)
         response = self.client.get(url,format='json')
-        print(response)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     def test_user_details_retreival_unauthorized(self):
@@ -149,5 +148,4 @@ class UserDetailsTestCase(TestCase):
         
         self.client.credentials()
         response = self.client.get(url,format='json')
-        print(response)
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)

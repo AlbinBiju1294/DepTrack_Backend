@@ -208,16 +208,18 @@ class GetInitiatedRequestsApiView(APIView):
     def get(self, request):
         try:
             du_id = request.query_params.get('du_id')
+            if du_id == None:
+                return Response({"error": "Provide Du id"}, status=status.HTTP_400_BAD_REQUEST)
             query_set = Transfer.objects.filter(
                 Q(currentdu_id=du_id) & (Q(status=1) | Q(status=2))).order_by('-id')
             logger.info(query_set)
             if query_set:
                 serializer = TransferAndEmployeeSerializer(query_set, many=True)
                 return Response({"data": serializer.data,"message":"Initiated requests retreived successfully"}, status=status.HTTP_200_OK)
-            return Response({"message": "Transfer details not found"}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"erroe": "Transfer details not found"}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             logger.error(e)
-            return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 # To post the details when a request is approved by T-DU head
