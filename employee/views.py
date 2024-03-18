@@ -215,7 +215,6 @@ class EmployeeUpdate(APIView):
                 return Response({'error':'upload failed'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         except Exception as ex:
             return Response({'error':str(ex)},status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-            print(str(ex))
         
 
 class NoOfEmployeesInDUsAPIView(APIView):

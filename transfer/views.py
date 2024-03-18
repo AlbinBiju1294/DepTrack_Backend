@@ -147,7 +147,6 @@ class FilterTransfersAPIView(APIView):
             filter_params = request.query_params
             query_set = Transfer.objects.filter(status__in=[3, 4, 5]).order_by('-id')
             
-            # Check if limit and offset are provided
             if 'limit' in filter_params and 'offset' in filter_params:
                 paginator = self.pagination_class()
                 paginated = True
@@ -173,7 +172,7 @@ class FilterTransfersAPIView(APIView):
                     transfer_date__range=(start_date, end_date))
 
             if query_set.exists():
-                if paginated:  # Apply pagination if limit and offset are provided
+                if paginated:
                     paginator = self.pagination_class()
                     paginated_results = paginator.paginate_queryset(query_set, request)
                     serializer = TransferAndEmployeeSerializer(
