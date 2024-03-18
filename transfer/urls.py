@@ -13,6 +13,6 @@ urlpatterns = [
     path('bargraph-data/', NoOfTransfersInDUsAPIView.as_view(), name='bargraph-data'),
     path('cancel/', CancelTransfer.as_view(), name='cancel_transfer'),
     path('status-count/', TransferStatusCountAPIView.as_view(), name='transfer-status-count'),
-    path("request-rejected", TargetDURejectAPIView.as_view(), name="request-rejected"),
-    path("cdu-request-approval", CDURequestApprovalAPIView.as_view(), name="cdu-request-approval"),
+    path("request-rejected/", TargetDURejectAPIView.as_view(), name="request-rejected"),
+    path("cdu-request-approval/", CDURequestApproval.as_view(), name="cdu-request-approval"),
 ]

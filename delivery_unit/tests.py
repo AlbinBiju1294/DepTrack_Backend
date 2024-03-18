@@ -1,21 +1,15 @@
 from django.test import TestCase
 from employee.models import Employee
-from rest_framework.test import APIClient,APITestCase
+from rest_framework.test import APIClient
 from django.contrib.auth import get_user_model
 import logging
 from rest_framework import status
-
 from django.test import TestCase
 from django.urls import reverse
 from .models import*
 from rest_framework_simplejwt.tokens import AccessToken
-
-from django.urls import reverse
-from rest_framework import status
-from rest_framework.test import APIClient
 from unittest.mock import patch
 from employee.models import DeliveryUnit, Employee
-from django.contrib.auth import get_user_model
 from rest_framework_simplejwt.tokens import AccessToken
 
 class DashboardDuDetailsTestCase(TestCase):
