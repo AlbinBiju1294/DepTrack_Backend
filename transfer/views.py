@@ -26,7 +26,7 @@ logger = logging.getLogger("django")
 
 # saves the transfers initiated into the transfers and transfer details table
 class CreateTransferAPIView(APIView):
-    permission_classes = [IsPm | IsDuhead]
+    permission_classes = [IsPm | IsDuhead | IsAdmin]
     """The data is serialized using transfer serializer. If it is valid it is saved 
     into the transfer table. The transfer_id from the transfer instance is added 
     to the request data and then it is added to transfer details table along with
@@ -95,6 +95,7 @@ class CreateTransferAPIView(APIView):
                         return Response({'message': 'Transfer created and email sent successfully.'}, status=status.HTTP_201_CREATED)
                                             
                 else:
+                    transfer.delete()
                     print(transfer_detail_serializer.errors)
                     return Response({'error': transfer_detail_serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
             else:
@@ -103,7 +104,7 @@ class CreateTransferAPIView(APIView):
 
 
         except Exception as e:
-            print(e)
+            logger.critical(e)
             return Response({"error": f"Transfer initiation failed: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
@@ -139,19 +140,26 @@ class FilterTransfersAPIView(APIView):
 
     permission_classes = [IsPm | IsDuhead | IsHrbp | IsAdmin]
     pagination_class = LimitOffsetPagination
+
     def get(self, request):
         try:
-            paginator = self.pagination_class()
             filter_params = request.query_params
-            query_set = Transfer.objects.filter(status__in=[3,4,5]).order_by('-id')
+            query_set = Transfer.objects.filter(status__in=[3, 4, 5]).order_by('-id')
+            
+            if 'limit' in filter_params and 'offset' in filter_params:
+                paginator = self.pagination_class()
+                paginated = True
+            else:
+                paginated = False
+
             for key, value in filter_params.items():
                 if key == 'employee_name':
                     query_set = query_set.filter(
                         employee_id__name__icontains=value)
                 elif key == 'employee_number':
                     query_set = query_set.filter(
-                        employee_id__employee_number__icontains=value) 
-                elif value and key != 'start_date' and key != 'end_date' and key!='offset' and key!='limit' and key!='transfer_raised_on':
+                        employee_id__employee_number__icontains=value)
+                elif value and key not in ['start_date', 'end_date', 'offset', 'limit']:
                     query_set = query_set.filter(**{key: value})
 
             if 'start_date' in filter_params and 'end_date'  in filter_params:
@@ -163,25 +171,30 @@ class FilterTransfersAPIView(APIView):
                     transfer_date__range=(start_date, end_date))
 
             if query_set.exists():
-                paginated_results = paginator.paginate_queryset(query_set, request)
-                serializer = TransferAndEmployeeSerializer(
-                    paginated_results, many=True)
-                response_data = {
-                    'count': paginator.count,
-                    'next': paginator.get_next_link(),
-                    'previous': paginator.get_previous_link(),
-                    'results': serializer.data
-                }
-                if response_data:
-                    return Response({'data': response_data, 'message': 'Transfer history retreived successfully'}, status=status.HTTP_200_OK)
+                if paginated:
+                    paginator = self.pagination_class()
+                    paginated_results = paginator.paginate_queryset(query_set, request)
+                    serializer = TransferAndEmployeeSerializer(
+                        paginated_results, many=True)
+                    response_data = {
+                        'count': paginator.count,
+                        'next': paginator.get_next_link(),
+                        'previous': paginator.get_previous_link(),
+                        'results': serializer.data
+                    }
                 else:
-                    return Response({'error': 'List of transfer histories cannot be retreived.'}, status=status.HTTP_404_NOT_FOUND)
+                    serializer = TransferAndEmployeeSerializer(
+                        query_set, many=True)
+                    response_data = {'count': len(serializer.data), 'results': serializer.data}
+
+                return Response({'data': response_data, 'message': 'Transfer history retrieved successfully'}, status=status.HTTP_200_OK)
             else:
-                return Response({'error': 'Transfer details does not exists.'}, status=status.HTTP_404_NOT_FOUND)
+                return Response({'error': 'Transfer details do not exist.'}, status=status.HTTP_404_NOT_FOUND)
 
         except Exception as e:
             logger.error(f"Transfer History Listing API: {e}")
-            return Response({'error': {str(e)}}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 
 # to track the initiated transfer requests.
@@ -203,6 +216,7 @@ class GetInitiatedRequestsApiView(APIView):
                 return Response({"data": serializer.data,"message":"Initiated requests retreived successfully"}, status=status.HTTP_200_OK)
             return Response({"message": "Transfer details not found"}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
+            logger.error(e)
             return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
@@ -258,7 +272,7 @@ class ChangeApprovalDatePmAPIView(APIView):
                 'transfer_id': transfer_id,
                 'current_du': transfer.currentdu_id.du_name,
                 'target_du': transfer.targetdu_id.du_name,
-                'new_pm_id': new_pm.name if new_pm else None,
+                'new_pm_id': assigned_emp_pm if new_pm else None,
                 'transfer_date': transfer_date_set.strftime("%d-%m-%Y")
             }
             subject = 'Transfer Request Approved'

@@ -29,7 +29,7 @@ class TransferAndDetailsSerializer(serializers.ModelSerializer):
  
     class Meta:
         model = Transfer
-        fields = ["id", "employee" , "details", "currentdu", "targetdu", "status", "transfer_date", "initiated_by"]
+        fields = ["id", "employee" , "details", "currentdu", "targetdu", "status", "transfer_date","transfer_raised_on", "initiated_by"]
 
     def get_employee(self, obj):
         try:
