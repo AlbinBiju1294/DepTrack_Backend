@@ -92,7 +92,6 @@ class PMListView(ListAPIView):
             return Response({ "message":"PM listing successful","data":serializer.data}, status=status.HTTP_200_OK)
  
         except Exception as ex:
-            print(ex)
             return Response({"message": str(ex)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
@@ -152,7 +151,6 @@ class UpdateDUHeadAPIView(APIView):
             data = request.data
             new_du_head_id = data.get("du_head_id")
             du_id = data.get("du_id")
-            print(new_du_head_id,du_id)
             if new_du_head_id==None:
                 return Response({'error': 'Please select the new DU head'}, status=status.HTTP_400_BAD_REQUEST)
             
@@ -160,7 +158,6 @@ class UpdateDUHeadAPIView(APIView):
                 du_head_emp_id = Employee.objects.get(id=new_du_head_id)
                 du_mapping_obj = DeliveryUnitMapping.objects.get(du_id=du_id)
             except Exception as e:
-                print(e)
                 return Response({'error': 'Error in retreiving employee and delivery unit mapping objects'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             
             du_mapping_obj.du_head_id = du_head_emp_id
@@ -168,7 +165,6 @@ class UpdateDUHeadAPIView(APIView):
             return Response({'message': 'DU head updated successfully'}, status=status.HTTP_200_OK)
         
         except Exception as e:
-            print(e)
             return Response({'error': 'DU head cannot be updated due to error: {e}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
@@ -192,8 +188,6 @@ class EmployeeUpdate(APIView):
                             employee=Employee.objects.filter( mail_id=cell_value.strip()).first()
                             user=User.objects.filter(email=cell_value.strip()).first()
                             if(employee):
-                                print("in")
-                                print(index,df.at[index,'role-id'])
                                 if not pd.isna(df.at[index, 'role-id']) and df.at[index, 'role-id'] != '' and  not user:
                                     new_user = User(email=df.at[index,'email'],user_role=df.at[index,'role-id'],employee_id=employee,username=df.at[index,'user-name'])
                                     new_user.save()
@@ -205,7 +199,6 @@ class EmployeeUpdate(APIView):
                                 employee.designation=new_designation
                                 employee.save()
                             else:
-                                print("in new")
                                 new_du_id=df.at[index, 'department-id']
                                 delivery_unit_instance= DeliveryUnit.objects.get(id=new_du_id)
                                 new_employee = Employee(employee_number=df.at[index,'employee-number'],name=df.at[index,'employee-name'], mail_id=df.at[index,'email'],designation=df.at[index,'designation'],du_id=delivery_unit_instance,profile_pic_path=df.at[index,'profile-pic'])
