@@ -192,6 +192,7 @@ class EmployeeUpdate(APIView):
                             employee=Employee.objects.filter( mail_id=cell_value.strip()).first()
                             user=User.objects.filter(email=cell_value.strip()).first()
                             if(employee):
+                                print("in")
                                 print(index,df.at[index,'role-id'])
                                 if not pd.isna(df.at[index, 'role-id']) and df.at[index, 'role-id'] != '' and  not user:
                                     new_user = User(email=df.at[index,'email'],user_role=df.at[index,'role-id'],employee_id=employee,username=df.at[index,'user-name'])
@@ -199,10 +200,13 @@ class EmployeeUpdate(APIView):
                                 new_du_id=df.at[index, 'department-id']
                                 new_designation=df.at[index, 'designation']
                                 delivery_unit_instance= DeliveryUnit.objects.get(id=new_du_id)
-                                employee.du_id=delivery_unit_instance
+                                if (not(DeliveryUnitMapping.objects.filter(du_head_id=employee).exists() or DeliveryUnitMapping.objects.filter(hrbp_id=employee).exists())):
+                                     employee.du_id=delivery_unit_instance
                                 employee.designation=new_designation
                                 employee.save()
                             else:
+                                print("in new")
+                                new_du_id=df.at[index, 'department-id']
                                 delivery_unit_instance= DeliveryUnit.objects.get(id=new_du_id)
                                 new_employee = Employee(employee_number=df.at[index,'employee-number'],name=df.at[index,'employee-name'], mail_id=df.at[index,'email'],designation=df.at[index,'designation'],du_id=delivery_unit_instance,profile_pic_path=df.at[index,'profile-pic'])
                                 new_employee.save()
@@ -264,7 +268,7 @@ class PotentialDuHeads(ListAPIView):
             
             # Serialize the data and return the response
             data = [{'employee_id': emp.id, 'name': emp.name} for emp in employees]
-            return Response({"data":data,"message":"du Head candidated listed"},status=status.HTTP_200_OK)
+            return Response({"data":data,"message":"du Head candidates listed"},status=status.HTTP_200_OK)
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -276,10 +280,9 @@ class PotentialHrbps(ListAPIView):
     def get(self, request):
         try:
             # Retrieve employee objects of users with role ID 4
-            users_with_role_id_1 = User.objects.filter(user_role=4)
-            employee_ids = [user.employee_id.id for user in users_with_role_id_1]
+            users_with_role_id_4 = User.objects.filter(user_role=4)
+            employee_ids = [user.employee_id.id for user in users_with_role_id_4]
             employees = Employee.objects.filter(id__in=employee_ids)
-            
             # Exclude employees who are already hrpbs of other du's
             mapped_employee_ids = DeliveryUnitMapping.objects.values_list('hrbp_id', flat=True)
             employees = employees.exclude(id__in=mapped_employee_ids)
