@@ -380,9 +380,7 @@ class ListTransferHistoryAPIView(APIView):
                     'previous': paginator.get_previous_link(),
                     'results': serializer.data
                 }
-                print(response_data['results'])
 
-                # logger.info(response_data)
 
                 if response_data:
                     return Response({'data': response_data, 'message': 'Transfer history retreived successfully'}, status=status.HTTP_200_OK)
