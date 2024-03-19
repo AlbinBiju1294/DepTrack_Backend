@@ -54,7 +54,6 @@ class TransferAPITestCase(APITestCase):
         url = reverse('create-transfer')
 
         response = self.client.post(url, data, format='json')
-        print('hello',response)
         self.assertEqual(response.status_code, 201)
         self.assertEqual(response.data, {'message': 'Transfer created and email sent successfully.'})
 
@@ -77,7 +76,6 @@ class TransferAPITestCase(APITestCase):
         url = reverse('create-transfer')
 
         response = self.client.post(url, data, format='json')
-        print('hello',response)
         self.assertEqual(response.status_code, 400)
 
     def test_transfer_api_unauthorized_case(self):
@@ -102,7 +100,6 @@ class TransferAPITestCase(APITestCase):
         url = reverse('create-transfer')
 
         response = self.client.post(url, data, format='json')
-        print('hello',response)
         self.assertEqual(response.status_code, 401)
 
 class ListTransferHistoryAPITestCase(APITestCase):
