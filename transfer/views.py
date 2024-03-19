@@ -265,19 +265,19 @@ class ChangeApprovalDatePmAPIView(APIView):
             # Prepare email parameters
             transfer_date_set = datetime.strptime(transfer_date, "%Y-%m-%d")
 
-            html_page = 'initiate_transfer_mail.html'
+            html_page = 'approval_mail.html'
             html_content_object = {
-                'user_name': request.user.employee_id.name,
                 'employee_number': transfer.employee_id.employee_number,
                 'employee_name':transfer.employee_id.name,
                 'transfer_id': transfer.id,
                 'current_du': transfer.currentdu_id.du_name,
                 'target_du': transfer.targetdu_id.du_name,
                 'transfer_date': transfer_date_set.strftime("%d-%m-%Y"),
-                'transfer_raised_on': transfer.transfer_raised_on.strftime("%d-%m-%Y")
+                'transfer_raised_on': transfer.transfer_raised_on.strftime("%d-%m-%Y"),
+                'new_pm_id': assigned_emp_pm.name if new_pm else None
             }
 
-            subject= 'Transfer Initiated for '+ transfer.employee_id.employee_number
+            subject= 'Transfer Request Approved'
             
             current_du_id = transfer.currentdu_id
             target_du_id = transfer.targetdu_id
@@ -343,7 +343,7 @@ class CDURequestApproval(APIView):
                 'transfer_date': transfer_date_set.strftime("%d-%m-%Y"),
                 'transfer_raised_on': transfer.transfer_raised_on.strftime("%d-%m-%Y")
              }
-            subject= 'Transfer Request Approved'
+            subject= 'Transfer Initiated for '+ transfer.employee_id.employee_number
             current_du_id = transfer.currentdu_id
             target_du_id = transfer.targetdu_id
             transfer_status = transfer.status
