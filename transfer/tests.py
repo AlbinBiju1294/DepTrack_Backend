@@ -12,6 +12,7 @@ from unittest.mock import patch
 from rest_framework_simplejwt.tokens import AccessToken
 from .models import Transfer, Employee, DeliveryUnit
 from .views import PendingApprovalsView
+from datetime import datetime, timedelta
 
 class TransferAPITestCase(APITestCase):
     def setUp(self):
@@ -240,3 +241,94 @@ class PendingApprovalsViewTestCase(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+
+
+from django.contrib.auth import get_user_model
+from django.urls import reverse
+from rest_framework import status
+from rest_framework.test import APITestCase
+from unittest.mock import patch
+from datetime import datetime, timedelta
+from .models import DeliveryUnit, Employee, Transfer
+from .views import NoOfTransfersInDUsAPIView
+
+class NoOfTransfersInDUsAPIViewTestCase(APITestCase):
+    @classmethod
+    def setUpTestData(cls):
+        # Create sample DeliveryUnit objects
+        cls.du1 = DeliveryUnit.objects.create(du_name='DU 1')
+        cls.du2 = DeliveryUnit.objects.create(du_name='DU 2')
+
+        # Create Employee instances
+        cls.employee1 = Employee.objects.create(
+            employee_number='EMP001',
+            name='John Doe',
+            mail_id='john@example.com',
+            designation='Developer',
+            du_id=cls.du1
+        )
+
+        cls.employee2 = Employee.objects.create(
+            employee_number='EMP002',
+            name='Jane Smith',
+            mail_id='jane@example.com',
+            designation='Designer',
+            du_id=cls.du2
+        )
+
+        cls.employee3 = Employee.objects.create(
+            employee_number='EMP003',
+            name='Alice Johnson',
+            mail_id='alice@example.com',
+            designation='Manager',
+            du_id=cls.du1
+        )
+        cls.employee4 = Employee.objects.create(
+            employee_number='EMP001',
+            name='John',
+            mail_id='johnd@example.com',
+            designation='Developer',
+            du_id=cls.du2
+        )
+
+        # Create sample Transfer objects
+        thirty_days_ago = datetime.now() - timedelta(days=30)
+        Transfer.objects.create(employee_id=cls.employee1, currentdu_id=cls.du1, targetdu_id=cls.du2, status=3,
+                                transfer_date=thirty_days_ago, newpm_id=cls.employee2, initiated_by=cls.employee3)
+        Transfer.objects.create(employee_id=cls.employee4, currentdu_id=cls.du2, targetdu_id=cls.du1, status=3,
+                                transfer_date=thirty_days_ago, newpm_id=cls.employee3, initiated_by=cls.employee2)
+
+    def setUp(self):
+        # Create a user
+        self.user = get_user_model().objects.create_user(
+            username='duhead', password='testpassword', email='duhead@example.com',
+            user_role=1, employee_id=self.employee1
+        )
+
+        # Create an access token for the user
+        self.token = AccessToken.for_user(self.user)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {self.token}')
+
+    def test_get_number_of_transfers_in_dus(self):
+        # Create a GET request
+        url = reverse('bargraph-data')
+        response = self.client.get(url)
+
+        # Check response status code
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        # Check response data
+        self.assertIn('data', response.data)
+        self.assertIn('message', response.data)
+        self.assertEqual(len(response.data['data']), 2)  
+    
+    def test_get_number_of_transfers_in_dus_unauthenticated(self):
+        # Clear authentication
+        self.client.credentials()
+
+        # Create a GET request without authentication
+        url = reverse('bargraph-data')
+        response = self.client.get(url)
+
+        # Check response status code
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
