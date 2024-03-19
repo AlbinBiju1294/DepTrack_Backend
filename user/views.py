@@ -1,24 +1,20 @@
-from django.shortcuts import render
-from django.http import JsonResponse
-from rest_framework import generics, status, permissions
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 import logging
-from django.contrib.auth import update_session_auth_hash
 from .serializers import *
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework.generics import UpdateAPIView, RetrieveUpdateAPIView, ListAPIView, GenericAPIView,RetrieveUpdateDestroyAPIView
-from .rbac import IsDuhead, IsAdmin, IsHrbp, IsPm, IsUser
+from rest_framework.generics import ListAPIView, GenericAPIView
+from .rbac import IsAdmin
 import logging
 from employee.models import DeliveryUnitMapping
+from django.contrib.auth import get_user_model
+
+
 logger = logging.getLogger("django")
 
-# Create your views here.
-
 # User registration view
-
-
 class UserRegistrationView(GenericAPIView):
     serializer_class = RegisterSerializer
     permission_classes = [IsAdmin]
@@ -49,11 +45,7 @@ class UserRegistrationView(GenericAPIView):
                 "error": str(ex)}, }
             return Response(res_data, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
-from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework.response import Response
-from rest_framework import status
-from rest_framework.views import APIView
-from django.contrib.auth import get_user_model
+
 
 class ObtainJWTWithEmail(APIView):
     def post(self, request, *args, **kwargs):

@@ -6,18 +6,14 @@ from datetime import datetime, timedelta
 from rest_framework.views import APIView
 from .serializers import TransferSerializer, TransferDetailsSerializer
 from rest_framework.permissions import IsAuthenticated
-from .models import Transfer, TransferDetails
-from employee.models import Employee, DeliveryUnitMapping
+from .models import Transfer
+from employee.models import Employee
 from delivery_unit.models import DeliveryUnit
 from .serializers import TransferSerializer, TransferDetailsSerializer, TransferAndDetailsSerializer, TransferAndEmployeeSerializer
 from user.rbac import *
 from rest_framework.pagination import LimitOffsetPagination
 from .utils import prepare_email, send_email
 import logging
-from django.conf import settings
-from django.utils.html import strip_tags
-from django.template.loader import render_to_string
-from django.core.mail import EmailMultiAlternatives
 from datetime import datetime
 
 
