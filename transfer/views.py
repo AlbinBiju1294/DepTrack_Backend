@@ -78,26 +78,20 @@ class CreateTransferAPIView(APIView):
                     if(transfer_status == 1):
 
                         email_parameters = prepare_email(transfer_status, current_du_id, target_du_id, html_page, html_content_object)  
-                        print("got into transfer creation ")
                         send_email(subject=subject, recipient_to_email=email_parameters[0], recipient_cc_email=email_parameters[1], text_content=email_parameters[3], html_content=email_parameters[2])
-                        print("email is send")
                         return Response({'message': 'Transfer created and email sent successfully.'}, status=status.HTTP_201_CREATED)
                        
                     #checking if initiator is DU head
                     elif (transfer_status == 2):
 
                         email_parameters = prepare_email(transfer_status, current_du_id, target_du_id, html_page, html_content_object)  
-                        print("got into transfer creation ")
                         send_email(subject=subject, recipient_to_email=email_parameters[0], recipient_cc_email=email_parameters[1], text_content=email_parameters[3], html_content=email_parameters[2])
-                        print("email is send")
                         return Response({'message': 'Transfer created and email sent successfully.'}, status=status.HTTP_201_CREATED)
                                             
                 else:
                     transfer.delete()
-                    print(transfer_detail_serializer.errors)
                     return Response({'error': transfer_detail_serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
             else:
-                print(transfer_serializer.errors)
                 return Response({"error": transfer_serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -247,7 +241,6 @@ class ChangeApprovalDatePmAPIView(APIView):
             
             if new_pm:
                 assigned_emp_pm =  Employee.objects.get(id=new_pm)
-                print(assigned_emp_pm)
                 transfer.newpm_id = assigned_emp_pm
             else:
                 assigned_emp_pm = None
@@ -437,7 +430,6 @@ class PendingApprovalsView(APIView):
                 return Response({"error": "Error in retrieving pending approvals"}, status=status.HTTP_404_NOT_FOUND)
 
         except Exception as e:
-            print(e)
             return Response({"error": {str(e)}}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
@@ -529,7 +521,6 @@ class TransferStatusCountAPIView(APIView):
             }
             return Response({"message":"transfer count display successful","data":transfer_count}, status=status.HTTP_200_OK)
         except Exception as e:
-            print(e)
             return Response({ "error":str(e) }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
 
@@ -560,7 +551,6 @@ class TargetDURejectAPIView(APIView):
                 return Response({"error":"Fields Missing"},status=status.HTTP_400_BAD_REQUEST)
 
         except Exception as e:
-            print(e)
             return Response({ "errror": f"Something went wrong. {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
  
 
