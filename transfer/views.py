@@ -6,18 +6,14 @@ from datetime import datetime, timedelta
 from rest_framework.views import APIView
 from .serializers import TransferSerializer, TransferDetailsSerializer
 from rest_framework.permissions import IsAuthenticated
-from .models import Transfer, TransferDetails
-from employee.models import Employee, DeliveryUnitMapping
+from .models import Transfer
+from employee.models import Employee
 from delivery_unit.models import DeliveryUnit
 from .serializers import TransferSerializer, TransferDetailsSerializer, TransferAndDetailsSerializer, TransferAndEmployeeSerializer
 from user.rbac import *
 from rest_framework.pagination import LimitOffsetPagination
 from .utils import prepare_email, send_email
 import logging
-from django.conf import settings
-from django.utils.html import strip_tags
-from django.template.loader import render_to_string
-from django.core.mail import EmailMultiAlternatives
 from datetime import datetime
 
 
@@ -204,16 +200,18 @@ class GetInitiatedRequestsApiView(APIView):
     def get(self, request):
         try:
             du_id = request.query_params.get('du_id')
+            if du_id == None:
+                return Response({"error": "Provide Du id"}, status=status.HTTP_400_BAD_REQUEST)
             query_set = Transfer.objects.filter(
                 Q(currentdu_id=du_id) & (Q(status=1) | Q(status=2))).order_by('-id')
             logger.info(query_set)
             if query_set:
                 serializer = TransferAndEmployeeSerializer(query_set, many=True)
                 return Response({"data": serializer.data,"message":"Initiated requests retreived successfully"}, status=status.HTTP_200_OK)
-            return Response({"message": "Transfer details not found"}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"erroe": "Transfer details not found"}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             logger.error(e)
-            return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 # To post the details when a request is approved by T-DU head
@@ -260,19 +258,19 @@ class ChangeApprovalDatePmAPIView(APIView):
             # Prepare email parameters
             transfer_date_set = datetime.strptime(transfer_date, "%Y-%m-%d")
 
-            html_page = 'initiate_transfer_mail.html'
+            html_page = 'approval_mail.html'
             html_content_object = {
-                'user_name': request.user.employee_id.name,
                 'employee_number': transfer.employee_id.employee_number,
                 'employee_name':transfer.employee_id.name,
                 'transfer_id': transfer.id,
                 'current_du': transfer.currentdu_id.du_name,
                 'target_du': transfer.targetdu_id.du_name,
                 'transfer_date': transfer_date_set.strftime("%d-%m-%Y"),
-                'transfer_raised_on': transfer.transfer_raised_on.strftime("%d-%m-%Y")
+                'transfer_raised_on': transfer.transfer_raised_on.strftime("%d-%m-%Y"),
+                'new_pm_id': assigned_emp_pm.name if new_pm else None
             }
 
-            subject= 'Transfer Initiated for '+ transfer.employee_id.employee_number
+            subject= 'Transfer Request Approved'
             
             current_du_id = transfer.currentdu_id
             target_du_id = transfer.targetdu_id
@@ -338,7 +336,7 @@ class CDURequestApproval(APIView):
                 'transfer_date': transfer_date_set.strftime("%d-%m-%Y"),
                 'transfer_raised_on': transfer.transfer_raised_on.strftime("%d-%m-%Y")
              }
-            subject= 'Transfer Request Approved'
+            subject= 'Transfer Initiated for '+ transfer.employee_id.employee_number
             current_du_id = transfer.currentdu_id
             target_du_id = transfer.targetdu_id
             transfer_status = transfer.status
@@ -380,6 +378,7 @@ class ListTransferHistoryAPIView(APIView):
                     'previous': paginator.get_previous_link(),
                     'results': serializer.data
                 }
+
 
                 if response_data:
                     return Response({'data': response_data, 'message': 'Transfer history retreived successfully'}, status=status.HTTP_200_OK)

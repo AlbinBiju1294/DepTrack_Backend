@@ -28,8 +28,6 @@ class PmSerializer(serializers.ModelSerializer):
             return None
 
 
-
-
 class EmployeeNestedSerializer(serializers.ModelSerializer):
     class Meta:
         model = Employee
@@ -39,10 +37,6 @@ class DeliveryUnitMappingSerializer(serializers.ModelSerializer):
     class Meta:
         model = DeliveryUnitMapping
         fields = '__all__'
-
-
-
-        
 
 
 class DuAndEmployeeSerializer(serializers.ModelSerializer):
