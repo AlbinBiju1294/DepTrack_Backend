@@ -1,6 +1,6 @@
 from django.contrib.auth import get_user_model
 from django.test import TestCase
-from rest_framework.test import APIClient
+from rest_framework.test import APIClient,APITestCase
 from rest_framework import status
 from unittest.mock import patch
 from .views import DuHeadAndDuList
@@ -11,6 +11,8 @@ from rest_framework_simplejwt.tokens import AccessToken
 from employee.models import Employee
 from delivery_unit.models import DeliveryUnit
 from .serializers import *
+from .models import Employee, DeliveryUnit  # Import your models
+from user.models import User
 
 
 user = get_user_model()
@@ -124,12 +126,6 @@ class DuHeadAndDuListTestCase(TestCase):
             response = self.client.get(url)
             self.assertEqual(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
             self.assertTrue("error" in response.data)
-from django.urls import reverse
-from rest_framework import status
-from rest_framework.test import APIClient,APITestCase
-from .models import Employee, DeliveryUnit  # Import your models
-from user.models import User
-from rest_framework_simplejwt.tokens import AccessToken
  
  
 # unit test case for PM listing API

@@ -467,7 +467,7 @@ class NoOfTransfersInDUsAPIView(APIView):
 
 ##To cancel the initiated transfer request by the duhead
 class CancelTransfer(APIView):
-    permission_classes = [IsDuhead]
+    permission_classes = [IsDuhead | IsAdmin]
     """The transfer status of a particular transfer_id is changed to
         the new status=5 in the transfer table which indicates that the
         transfer is cancelled.Done by the current_du head"""

@@ -256,7 +256,7 @@ class PotentialDuHeads(ListAPIView):
             employees = Employee.objects.filter(id__in=employee_ids)
             
             # Exclude employees who are already mapped as du heads 
-            mapped_employee_ids = DeliveryUnitMapping.objects.values_list('du_head_id', flat=True)
+            mapped_employee_ids = DeliveryUnitMapping.objects.exclude(du_head_id=None).values_list('du_head_id', flat=True)
             employees = employees.exclude(id__in=mapped_employee_ids)
             
             # Serialize the data and return the response
@@ -277,7 +277,7 @@ class PotentialHrbps(ListAPIView):
             employee_ids = [user.employee_id.id for user in users_with_role_id_4]
             employees = Employee.objects.filter(id__in=employee_ids)
             # Exclude employees who are already hrpbs of other du's
-            mapped_employee_ids = DeliveryUnitMapping.objects.values_list('hrbp_id', flat=True)
+            mapped_employee_ids = DeliveryUnitMapping.objects.exclude(hrbp_id=None).values_list('hrbp_id', flat=True)
             employees = employees.exclude(id__in=mapped_employee_ids)
             
             # Serialize the data and return the response
