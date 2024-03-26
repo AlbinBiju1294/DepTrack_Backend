@@ -233,7 +233,7 @@ class ChangeApprovalDatePmAPIView(APIView):
             new_pm = data.get("newpm_id")
             transfer_date = data.get("transfer_date")
 
-            if(transfer_id == ' ' or transfer_date == ' ' or new_pm == ' '):
+            if(transfer_id == '' or transfer_date == ''):
                 return Response({'error': 'Provide the request data correctly.'}, status=status.HTTP_400_BAD_REQUEST)
 
             try:
@@ -260,19 +260,19 @@ class ChangeApprovalDatePmAPIView(APIView):
             # Prepare email parameters
             transfer_date_set = datetime.strptime(transfer_date, "%Y-%m-%d")
 
-            html_page = 'initiate_transfer_mail.html'
+            html_page = 'approval_mail.html'
             html_content_object = {
-                'user_name': request.user.employee_id.name,
                 'employee_number': transfer.employee_id.employee_number,
                 'employee_name':transfer.employee_id.name,
                 'transfer_id': transfer.id,
                 'current_du': transfer.currentdu_id.du_name,
                 'target_du': transfer.targetdu_id.du_name,
                 'transfer_date': transfer_date_set.strftime("%d-%m-%Y"),
-                'transfer_raised_on': transfer.transfer_raised_on.strftime("%d-%m-%Y")
+                'transfer_raised_on': transfer.transfer_raised_on.strftime("%d-%m-%Y"),
+                'new_pm_id': assigned_emp_pm.name if new_pm else None
             }
 
-            subject= 'Transfer Initiated for '+ transfer.employee_id.employee_number
+            subject= 'Transfer Request Approved'
             
             current_du_id = transfer.currentdu_id
             target_du_id = transfer.targetdu_id
@@ -338,7 +338,7 @@ class CDURequestApproval(APIView):
                 'transfer_date': transfer_date_set.strftime("%d-%m-%Y"),
                 'transfer_raised_on': transfer.transfer_raised_on.strftime("%d-%m-%Y")
              }
-            subject= 'Transfer Request Approved'
+            subject= 'Transfer Initiated for '+ transfer.employee_id.employee_number
             current_du_id = transfer.currentdu_id
             target_du_id = transfer.targetdu_id
             transfer_status = transfer.status
@@ -540,19 +540,35 @@ class TargetDURejectAPIView(APIView):
             transfer_id = int(data.get("transfer_id"))
             rejection_reason=data.get("rejection_reason")
             if transfer_id and rejection_reason:
-                 try:
+                try:
                     transfer = Transfer.objects.get(id=transfer_id)
-                 except  Transfer.DoesNotExist:
+                except  Transfer.DoesNotExist:
                     return Response({'error': 'Transfer does not exist'}, status=status.HTTP_400_BAD_REQUEST)
-                 transfer.status = 4
-                 transfer.rejection_reason=rejection_reason
-                 transfer.save()
-                 return Response({ 'message': 'Transfer rejection status and reason updated '}, status=status.HTTP_200_OK)            
+                transfer.status = 4
+                transfer.rejection_reason=rejection_reason
+
+                html_page = 'rejection_mail.html'
+                html_content_object = {
+                        'pm_name': transfer.initiated_by.name,
+                        'employee_number': transfer.employee_id.employee_number,
+                        'employee_name': transfer.employee_id.name,
+                        'transfer_id': transfer_id,
+                        'current_du': transfer.currentdu_id.du_name,
+                        'target_du': transfer.targetdu_id.du_name,
+                        'transfer_raised_on': transfer.transfer_raised_on.strftime("%d-%m-%Y")
+                    }
+                subject= 'Transfer Request Rejected for '+ transfer.employee_id.employee_number
+                
+                email_parameters = prepare_email(transfer.status, transfer.currentdu_id, transfer.targetdu_id, html_page, html_content_object)
+                transfer.save()
+                send_email(subject=subject, recipient_to_email=email_parameters[0], recipient_cc_email=email_parameters[1], text_content=email_parameters[3], html_content=email_parameters[2])
+
+                return Response({ 'message': 'Transfer request rejected and email sent successfully.'}, status=status.HTTP_200_OK)            
             else:
-                return Response({"error":"Fields Missing"},status=status.HTTP_400_BAD_REQUEST)
+                return Response({"error":"Transfer request rejection failed. "},status=status.HTTP_400_BAD_REQUEST)
 
         except Exception as e:
-            return Response({ "errror": f"Something went wrong. {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({ "errror": f"{str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
  
 
             
