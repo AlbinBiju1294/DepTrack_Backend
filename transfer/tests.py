@@ -202,7 +202,7 @@ class ListTransferHistoryAPITestCase(APITestCase):
 
     def test_list_transfer_history_unauthenticated(self):
         url = reverse('list-transfer-history')
-        self.client.credentials()  # Clear authentication
+        self.client.credentials()  
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
@@ -260,9 +260,9 @@ class PendingApprovalsViewTestCase(APITestCase):
             targetdu_id=self.target_du,
             status=2,
             transfer_date="2024-02-12",
-            initiated_by=self.du_head  # Provide a value for initiated_by
+            initiated_by=self.du_head  
         )
-        # Assuming TransferAndEmployeeSerializer correctly serializes Transfer objects
+        
         response = self.client.get(self.url, {'du_id': 2, 'tab_switch_btn': 1})
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
         self.assertEqual(response.data['message'], 'No external requests from other DUs exists.') 
@@ -274,7 +274,7 @@ class PendingApprovalsViewTestCase(APITestCase):
             targetdu_id=self.target_du,
             status=1,
             transfer_date="2024-02-12",
-            initiated_by=self.pm  # Provide a value for initiated_by
+            initiated_by=self.pm  
         )
         # Assuming TransferAndEmployeeSerializer correctly serializes Transfer objects
         response = self.client.get(self.url, {'du_id': 1, 'tab_switch_btn': 2})
