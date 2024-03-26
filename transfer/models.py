@@ -2,6 +2,7 @@
 from django.db import models
 from employee.models import Employee 
 from delivery_unit.models import DeliveryUnit
+from  employee.models import Band
 
 #setting the predefined status codes
 class RequestStatus():
@@ -24,10 +25,6 @@ class Transfer(models.Model):
 
     def __str__(self):
         return str(self.id)
-#setting the bands available
-class Band():
-    band_level = [("A1", "level1"), ("A2", "level2"),
-                   ("B1", "level3"), ("B2", "level4"), ("C1", "level5") ]
     
 
 #table for storing the transfer details like employee skills

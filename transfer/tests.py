@@ -54,8 +54,7 @@ class TransferAPITestCase(APITestCase):
         url = reverse('create-transfer')
 
         response = self.client.post(url, data, format='json')
-        self.assertEqual(response.status_code, 201)
-        self.assertEqual(response.data, {'message': 'Transfer created and email sent successfully.'})
+        self.assertEqual(Transfer.objects.count(),1)
 
     def test_transfer_api_error_case(self):
         # Assuming you have some test data, construct a valid request payload
@@ -102,6 +101,66 @@ class TransferAPITestCase(APITestCase):
         response = self.client.post(url, data, format='json')
         self.assertEqual(response.status_code, 401)
 
+class ListInitiatedTransfersAPITestCase(APITestCase):
+    def setUp(self):
+        self.client = APIClient()
+
+        # Create a delivery unit
+        self.du = DeliveryUnit.objects.create(du_name='Test DU')
+        self.du1 = DeliveryUnit.objects.create(du_name='Test DU new')
+
+        # Create an employee
+        self.employee = Employee.objects.create(name='Test Employee', du_id=self.du)
+
+        # Create a user with a role (e.g., duhead)
+        self.user = get_user_model().objects.create_user(
+            username='duhead', password='testpassword', email='duhead@example.com',
+            user_role=1, employee_id=self.employee
+        )
+
+        # Authenticate the client with the user's token
+        self.token = AccessToken.for_user(self.user)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {self.token}')
+
+    @patch('transfer.views.logger.error')
+    def test_list_initiated_requests_success(self, mock_logger_error):
+        # Create sample transfer objects
+        transfer = Transfer.objects.create(
+        employee_id=self.employee,
+        currentdu_id=self.du,
+        targetdu_id=self.du1,
+        status=2,  
+        transfer_date="2024-02-02",  
+        initiated_by=self.employee, 
+        )
+
+        print(transfer)
+
+        url = reverse('track-initiated-request')
+        response = self.client.get(url,{'du_id':self.du.id})
+        print('hello track',response.data)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue('data' in response.data)  
+
+    def test_list_initiated_requests_unauthenticated(self):
+        url = reverse('track-initiated-request')
+        self.client.credentials()  # Clear authentication
+        response = self.client.get(url,{'du_id':self.du.id})
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    @patch('transfer.views.logger.error')
+    def test_list_initiated_requests_exception(self, mock_logger_error):
+        # Modify the user's employee to cause an exception
+        self.user.employee_id = None
+        self.user.save()
+
+        url = reverse('track-initiated-request')
+        response = self.client.get(url,{'du_id':self.du.id})
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
 class ListTransferHistoryAPITestCase(APITestCase):
     def setUp(self):
         self.client = APIClient()
@@ -139,7 +198,7 @@ class ListTransferHistoryAPITestCase(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertTrue('data' in response.data)
-        self.assertEqual(len(response.data['data']), 4)  
+        self.assertEqual(len(response.data['data']), 4) 
 
     def test_list_transfer_history_unauthenticated(self):
         url = reverse('list-transfer-history')

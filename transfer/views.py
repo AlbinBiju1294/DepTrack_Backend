@@ -6,18 +6,14 @@ from datetime import datetime, timedelta
 from rest_framework.views import APIView
 from .serializers import TransferSerializer, TransferDetailsSerializer
 from rest_framework.permissions import IsAuthenticated
-from .models import Transfer, TransferDetails
-from employee.models import Employee, DeliveryUnitMapping
+from .models import Transfer
+from employee.models import Employee
 from delivery_unit.models import DeliveryUnit
 from .serializers import TransferSerializer, TransferDetailsSerializer, TransferAndDetailsSerializer, TransferAndEmployeeSerializer
 from user.rbac import *
 from rest_framework.pagination import LimitOffsetPagination
 from .utils import prepare_email, send_email
 import logging
-from django.conf import settings
-from django.utils.html import strip_tags
-from django.template.loader import render_to_string
-from django.core.mail import EmailMultiAlternatives
 from datetime import datetime
 
 
@@ -41,7 +37,7 @@ class CreateTransferAPIView(APIView):
             request.data['initiated_by'] = initiated_by
             request.data['total_experience'] = int(request.data['total_experience'])
             request.data['experion_experience'] = int(request.data['experion_experience'])
-
+            
             if current_du_id == target_du_id and current_du_id != None and target_du_id != None:
                 return Response({'error': 'Current and target DU cannot be the same.'}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -100,7 +96,7 @@ class CreateTransferAPIView(APIView):
 
 
         except Exception as e:
-            logger.critical(e)
+            logger.critical(f"Transfer initiation failed for employee {employee_id}: {str(e)}")
             return Response({"error": f"Transfer initiation failed: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
@@ -204,16 +200,18 @@ class GetInitiatedRequestsApiView(APIView):
     def get(self, request):
         try:
             du_id = request.query_params.get('du_id')
+            if du_id == None:
+                return Response({"error": "Provide Du id"}, status=status.HTTP_400_BAD_REQUEST)
             query_set = Transfer.objects.filter(
                 Q(currentdu_id=du_id) & (Q(status=1) | Q(status=2))).order_by('-id')
             logger.info(query_set)
             if query_set:
                 serializer = TransferAndEmployeeSerializer(query_set, many=True)
                 return Response({"data": serializer.data,"message":"Initiated requests retreived successfully"}, status=status.HTTP_200_OK)
-            return Response({"message": "Transfer details not found"}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"erroe": "Transfer details not found"}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             logger.error(e)
-            return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 # To post the details when a request is approved by T-DU head
@@ -381,6 +379,7 @@ class ListTransferHistoryAPIView(APIView):
                     'results': serializer.data
                 }
 
+
                 if response_data:
                     return Response({'data': response_data, 'message': 'Transfer history retreived successfully'}, status=status.HTTP_200_OK)
                 else:
@@ -468,7 +467,7 @@ class NoOfTransfersInDUsAPIView(APIView):
 
 ##To cancel the initiated transfer request by the duhead
 class CancelTransfer(APIView):
-    permission_classes = [IsDuhead]
+    permission_classes = [IsDuhead | IsAdmin]
     """The transfer status of a particular transfer_id is changed to
         the new status=5 in the transfer table which indicates that the
         transfer is cancelled.Done by the current_du head"""
