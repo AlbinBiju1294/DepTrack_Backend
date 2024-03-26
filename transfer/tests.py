@@ -54,7 +54,6 @@ class TransferAPITestCase(APITestCase):
         url = reverse('create-transfer')
 
         response = self.client.post(url, data, format='json')
-        print('hello',response)
         self.assertEqual(Transfer.objects.count(),1)
 
     def test_transfer_api_error_case(self):

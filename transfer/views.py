@@ -37,7 +37,7 @@ class CreateTransferAPIView(APIView):
             request.data['initiated_by'] = initiated_by
             request.data['total_experience'] = int(request.data['total_experience'])
             request.data['experion_experience'] = int(request.data['experion_experience'])
-
+            
             if current_du_id == target_du_id and current_du_id != None and target_du_id != None:
                 return Response({'error': 'Current and target DU cannot be the same.'}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -96,7 +96,7 @@ class CreateTransferAPIView(APIView):
 
 
         except Exception as e:
-            logger.critical(e)
+            logger.critical(f"Transfer initiation failed for employee {employee_id}: {str(e)}")
             return Response({"error": f"Transfer initiation failed: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
@@ -467,7 +467,7 @@ class NoOfTransfersInDUsAPIView(APIView):
 
 ##To cancel the initiated transfer request by the duhead
 class CancelTransfer(APIView):
-    permission_classes = [IsDuhead]
+    permission_classes = [IsDuhead | IsAdmin]
     """The transfer status of a particular transfer_id is changed to
         the new status=5 in the transfer table which indicates that the
         transfer is cancelled.Done by the current_du head"""
