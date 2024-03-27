@@ -7,6 +7,7 @@ from rest_framework.views import APIView
 from .serializers import TransferSerializer, TransferDetailsSerializer
 from rest_framework.permissions import IsAuthenticated
 from .models import Transfer
+from user.models import User
 from employee.models import Employee
 from delivery_unit.models import DeliveryUnit
 from .serializers import TransferSerializer, TransferDetailsSerializer, TransferAndDetailsSerializer, TransferAndEmployeeSerializer
@@ -324,7 +325,9 @@ class CDURequestApproval(APIView):
             
             transfer_date_set = datetime.strptime(transfer_date, "%Y-%m-%d")
 
-            html_page = 'initiate_transfer_mail.html'
+            html_page_to_targetdu = 'initiate_transfer_mail.html'
+            html_page_to_pm = 'cdu_approve_acknowledge_mail.html'
+
             html_content_object = {
                 'user_name': request.user.employee_id.name,
                 'pm_name': transfer.initiated_by.name,
@@ -336,17 +339,23 @@ class CDURequestApproval(APIView):
                 'transfer_date': transfer_date_set.strftime("%d-%m-%Y"),
                 'transfer_raised_on': transfer.transfer_raised_on.strftime("%d-%m-%Y")
              }
-            subject= 'Transfer Initiated for '+ transfer.employee_id.employee_number
+            subject_to_targetdu= 'Transfer Initiated for '+ transfer.employee_id.employee_number
+            subject_to_pm = 'Transfer Request Approved by '+ request.user.employee_id.name
+
             current_du_id = transfer.currentdu_id
             target_du_id = transfer.targetdu_id
             transfer_status = transfer.status
 
-            email_parameters = prepare_email(transfer_status, current_du_id, target_du_id, html_page, html_content_object)  
-
             transfer.save() 
+            
+            email_parameters = prepare_email(transfer_status, current_du_id, target_du_id, html_page_to_targetdu, html_content_object)  
+            send_email(subject=subject_to_targetdu, recipient_to_email=email_parameters[0], recipient_cc_email=email_parameters[1], text_content=email_parameters[3], html_content=email_parameters[2])
 
-            send_email(subject=subject, recipient_to_email=email_parameters[0], recipient_cc_email=email_parameters[1], text_content=email_parameters[3], html_content=email_parameters[2])
-                
+            #preparing email to be sent to pm who initiated the request
+            cdu_approval_pm_mail = prepare_email(transfer_status, current_du_id, target_du_id, html_page_to_pm, html_content_object, transfer.initiated_by)
+            #sending email acknowledging that request initiated by pm has been approved cdu head
+            send_email(subject=subject_to_pm, recipient_to_email=cdu_approval_pm_mail[0], recipient_cc_email=cdu_approval_pm_mail[1], text_content=cdu_approval_pm_mail[3], html_content=cdu_approval_pm_mail[2])
+
             return Response({'message': 'Transfer request approved by current DU head successfully. Email sent successfully'}, status=status.HTTP_200_OK)            
             
 
@@ -465,7 +474,7 @@ class NoOfTransfersInDUsAPIView(APIView):
             return Response({'error':{str(e)}}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-##To cancel the initiated transfer request by the duhead
+#To cancel the initiated transfer request by the duhead
 class CancelTransfer(APIView):
     permission_classes = [IsDuhead | IsAdmin]
     """The transfer status of a particular transfer_id is changed to
@@ -482,8 +491,33 @@ class CancelTransfer(APIView):
             if transfer_instance.currentdu_id_id == logged_in_duhead_du:
                 if transfer_instance.status not in [3, 4,5]:
                     transfer_instance.status = 5
+
+                    html_page = 'cancel_mail.html'
+                    html_content_object = {
+                            'user_name': request.user.employee_id.name,
+                            'pm_name': transfer_instance.initiated_by.name,
+                            'employee_number': transfer_instance.employee_id.employee_number,
+                            'employee_name': transfer_instance.employee_id.name,
+                            'transfer_id': transfer_instance.id,
+                            'current_du': transfer_instance.currentdu_id.du_name,
+                            'target_du': transfer_instance.targetdu_id.du_name,
+                            'transfer_raised_on': transfer_instance.transfer_raised_on.strftime("%d-%m-%Y")
+                        }
+                    subject= 'Transfer Request Cancelled for '+ transfer_instance.employee_id.employee_number
+                    
+                    initiated_by_employee_id = transfer_instance.initiated_by.id
+                    initiated_by_user_role = User.objects.get(employee_id = initiated_by_employee_id).user_role
+
+                    if initiated_by_user_role == 2:
+                        email_parameters = prepare_email(transfer_instance.status, transfer_instance.currentdu_id, transfer_instance.targetdu_id, html_page, html_content_object, transfer_instance.initiated_by)
+                    else:
+                        email_parameters = prepare_email(transfer_instance.status, transfer_instance.currentdu_id, transfer_instance.targetdu_id, html_page, html_content_object)
+
                     transfer_instance.save()
-                    return Response({"message": "Transfer status changed to cancel"}, status=status.HTTP_200_OK)
+
+                    send_email(subject=subject, recipient_to_email=email_parameters[0], recipient_cc_email=email_parameters[1], text_content=email_parameters[3], html_content=email_parameters[2])
+
+                    return Response({"message": "Transfer request cancelled and mail sent successfully."}, status=status.HTTP_200_OK)
                 elif transfer_instance.status == 3:
                     return Response({"message": "Cancellation is not allowed. Transfer has already been completed "},
                                 status=status.HTTP_400_BAD_REQUEST)
@@ -496,8 +530,7 @@ class CancelTransfer(APIView):
 
             return Response({"message": "Action not allowed. Employee does not belong to your Delivery Unit."},
                                 status=status.HTTP_403_FORBIDDEN)
-        except Transfer.DoesNotExist:
-            return Response({"error": "Transfer does not exist"}, status=status.HTTP_404_NOT_FOUND)
+        
         except Exception as e:
             return Response({ "message": f"Something went wrong. {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -554,7 +587,8 @@ class TargetDURejectAPIView(APIView):
                         'transfer_id': transfer_id,
                         'current_du': transfer.currentdu_id.du_name,
                         'target_du': transfer.targetdu_id.du_name,
-                        'transfer_raised_on': transfer.transfer_raised_on.strftime("%d-%m-%Y")
+                        'transfer_raised_on': transfer.transfer_raised_on.strftime("%d-%m-%Y"),
+                        'reason': transfer.rejection_reason
                     }
                 subject= 'Transfer Request Rejected for '+ transfer.employee_id.employee_number
                 
