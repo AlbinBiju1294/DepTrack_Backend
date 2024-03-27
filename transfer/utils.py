@@ -8,27 +8,33 @@ from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
 
 
-def prepare_email(transfer_status, current_du_id, target_du_id, html_page, html_content_object, assigned_pm=None):
+def prepare_email(transfer_status, current_du_id, target_du_id, html_page, html_content_object, pm=None):
     
     recipient_to_email = []
     recipient_cc_email = []
 
-    if transfer_status == 1 or transfer_status == 3:
+    if transfer_status == 1 or transfer_status == 3 or transfer_status == 4:
         current_du_head_id = DeliveryUnitMapping.objects.filter(du_id=current_du_id, du_head_id__isnull=False).first().du_head_id
         current_du_head_email = Employee.objects.filter(id=current_du_head_id.id).first().mail_id  if current_du_head_id else None
         recipient_to_email.append(current_du_head_email)
    
-    elif transfer_status == 2:
-        target_du_head_id = DeliveryUnitMapping.objects.filter(du_id=target_du_id, du_head_id__isnull=False).first().du_head_id
-        target_du_head_email = Employee.objects.filter(id=target_du_head_id.id).first().mail_id  if target_du_head_id else None
-        recipient_to_email.append(target_du_head_email)
+    elif transfer_status == 2 or transfer_status == 5:
+        if transfer_status == 2 and html_page == 'cdu_approve_acknowledge_mail.html':
+            recipient_to_email.append(pm.mail_id)
 
-    if transfer_status == 2 or transfer_status == 3:
-        if transfer_status == 3:
-            if assigned_pm is not None:
-                pm_mail = assigned_pm.mail_id 
-                recipient_to_email.append(pm_mail)
+        else:
+            target_du_head_id = DeliveryUnitMapping.objects.filter(du_id=target_du_id, du_head_id__isnull=False).first().du_head_id
+            target_du_head_email = Employee.objects.filter(id=target_du_head_id.id).first().mail_id  if target_du_head_id else None
+            recipient_to_email.append(target_du_head_email)
 
+    if transfer_status == 3:
+            if pm is not None:
+                recipient_to_email.append(pm.mail_id)
+    
+    if transfer_status == 5 and pm:
+        recipient_to_email.append(pm.mail_id)
+
+    if (transfer_status == 3 or transfer_status == 4 or transfer_status == 5) or (transfer_status == 2 and html_page != 'cdu_approve_acknowledge_mail.html'):
         current_du_hrbp = DeliveryUnitMapping.objects.filter(du_id=current_du_id, hrbp_id__isnull=False).first()
         target_du_hrbp = DeliveryUnitMapping.objects.filter(du_id=target_du_id, hrbp_id__isnull=False).first()
         if current_du_hrbp:
@@ -43,8 +49,7 @@ def prepare_email(transfer_status, current_du_id, target_du_id, html_page, html_
         recipient_cc_email.append(current_du_hrbp_email)
         recipient_cc_email.append(target_du_hrbp_email)
 
-    test_email = 'jittytresathomas@gmail.com'
-    recipient_to_email.append(test_email)
+    recipient_to_email.append('jittytresathomas@gmail.com')
     html_content = render_to_string(html_page, html_content_object )
     text_content = strip_tags(html_content)
 
